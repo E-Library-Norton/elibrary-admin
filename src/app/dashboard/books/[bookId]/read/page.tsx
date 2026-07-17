@@ -1,21 +1,10 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGetBookByIdQuery } from '@/services/bookApi';
-
-const PdfReader = dynamic(() => import('@/components/pdf-reader/PdfReader'), {
-  ssr: false,
-  loading: () => (
-    <div className='flex flex-col items-center justify-center h-screen bg-slate-900 gap-4'>
-      <Loader2 className='w-10 h-10 text-blue-400 animate-spin' />
-      <p className='text-slate-300 text-sm'>Loading PDF reader…</p>
-    </div>
-  ),
-});
 
 export default function BookReadPage() {
   const params = useParams();
@@ -86,7 +75,11 @@ export default function BookReadPage() {
           </Link>
         </Button>
       </div>
-      <PdfReader fileUrl={streamUrl} title={book.title} bookId={id} />
+      <iframe
+        src={streamUrl}
+        title={book.title ?? 'Book PDF'}
+        className='h-full w-full border-0'
+      />
     </div>
   );
 }
