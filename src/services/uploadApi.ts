@@ -25,9 +25,11 @@ export interface UploadSingleResponse {
 export interface UploadMultipleData {
   cover_url?: string;
   pdf_url?:   string;
+  pdf_urls?:  string[];
   files: {
     cover?: UploadedFileInfo;
     pdf?:   UploadedFileInfo;
+    pdfs?:  UploadedFileInfo[];
   };
 }
 
@@ -47,7 +49,7 @@ export const uploadApi = api.injectEndpoints({overrideExisting: true,
         body:   formData,
       }),
     }),
-    // POST /uploads/multiple   fields: "cover" + "pdf" (both optional, at least one required)
+    // POST /uploads/multiple: cover (1), pdf (1), pdfs (up to 4)
     uploadMultiple: builder.mutation<UploadMultipleResponse, FormData>({
       query: (formData) => ({
         url:    '/uploads/multiple',

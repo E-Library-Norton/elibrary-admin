@@ -284,37 +284,19 @@ export default function BookForm({
         setCoverPreview(localPreview);
       }
 
-      // Collect all upload promises to run in parallel
+      // Collect upload requests. Book files are sent together so supplementary
+      // PDFs are validated and handled as one batch by the API.
       const uploadPromises: Promise<any>[] = [];
       const uploadKeys: string[] = [];
 
-      if (hasCover && hasPdf) {
+      if (hasCover || hasPdf || extraFiles.length > 0) {
         const fd = new FormData();
-        fd.append('cover', values.coverUrl![0]);
-        fd.append('pdf',   values.pdfUrl![0]);
+        if (hasCover) fd.append('cover', values.coverUrl![0]);
+        if (hasPdf) fd.append('pdf', values.pdfUrl![0]);
+        extraFiles.forEach((file) => fd.append('pdfs', file));
         uploadPromises.push(uploadMultiple(fd).unwrap());
-        uploadKeys.push('multiple_cover_pdf');
-      } else {
-        if (hasCover) {
-          const fd = new FormData();
-          fd.append('cover', values.coverUrl![0]);
-          uploadPromises.push(uploadSingle(fd).unwrap());
-          uploadKeys.push('single_cover');
-        }
-        if (hasPdf) {
-          const fd = new FormData();
-          fd.append('pdf', values.pdfUrl![0]);
-          uploadPromises.push(uploadSingle(fd).unwrap());
-          uploadKeys.push('single_pdf');
-        }
+        uploadKeys.push('book_files');
       }
-
-      extraFiles.forEach((file, index) => {
-        const fd = new FormData();
-        fd.append('pdf', file);
-        uploadPromises.push(uploadSingle(fd).unwrap());
-        uploadKeys.push(`extra_pdf_${index}`);
-      });
 
       if (hasVideo) {
         const fd = new FormData();
@@ -341,29 +323,18 @@ export default function BookForm({
       let videoUrl: string | undefined = initialData?.videoUrl ?? undefined;
       let audioUrl: string | undefined = initialData?.audioUrl ?? undefined;
 
-      const uploadedExtraPdfs: string[] = [];
-
       uploadResults.forEach((res, index) => {
         const key = uploadKeys[index];
-        if (key === 'multiple_cover_pdf') {
-          coverUrl = res.data.cover_url;
-          pdfUrl   = res.data.pdf_url;
-        } else if (key === 'single_cover') {
-          coverUrl = res.data.cover_url;
-        } else if (key === 'single_pdf') {
-          pdfUrl = res.data.pdf_url;
-        } else if (key.startsWith('extra_pdf_')) {
-          uploadedExtraPdfs.push(res.data.pdf_url);
+        if (key === 'book_files') {
+          if (res.data.cover_url) coverUrl = res.data.cover_url;
+          if (res.data.pdf_url) pdfUrl = res.data.pdf_url;
+          if (res.data.pdf_urls) pdfUrls = res.data.pdf_urls;
         } else if (key === 'video') {
           videoUrl = res.data.video_url;
         } else if (key === 'audio') {
           audioUrl = res.data.audio_url;
         }
       });
-
-      if (uploadedExtraPdfs.length > 0) {
-        pdfUrls = uploadedExtraPdfs;
-      }
 
       // ── Step 3: Collect final author names + build JSON payload 
       const pendingNames = authorInput.trim()
