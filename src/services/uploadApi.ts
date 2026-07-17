@@ -39,6 +39,10 @@ export interface UploadMultipleResponse {
   message?: string;
 }
 
+export interface DeleteUploadedFileRequest {
+  file_url: string;
+}
+
 export const uploadApi = api.injectEndpoints({overrideExisting: true,
   endpoints: (builder) => ({
     // POST /uploads/single   field: "cover" | "pdf" | "avatar" | "file"
@@ -57,7 +61,18 @@ export const uploadApi = api.injectEndpoints({overrideExisting: true,
         body:   formData,
       }),
     }),
+    deleteUploadedFile: builder.mutation<void, DeleteUploadedFileRequest>({
+      query: (body) => ({
+        url: '/uploads/delete',
+        method: 'POST',
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useUploadSingleMutation, useUploadMultipleMutation } = uploadApi;
+export const {
+  useUploadSingleMutation,
+  useUploadMultipleMutation,
+  useDeleteUploadedFileMutation,
+} = uploadApi;

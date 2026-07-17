@@ -20,7 +20,11 @@ import {
   useUpdateBookMutation,
   type Book,
 } from '@/services/bookApi';
-import { useUploadSingleMutation, useUploadMultipleMutation } from '@/services/uploadApi';
+import {
+  useDeleteUploadedFileMutation,
+  useUploadMultipleMutation,
+  useUploadSingleMutation,
+} from '@/services/uploadApi';
 import { useGetCategoriesQuery } from '@/services/categoryApi';
 import { useGetDepartmentsQuery } from '@/services/departmentApi';
 import { useGetMaterialTypesQuery } from '@/services/materialTypeApi';
@@ -110,7 +114,7 @@ const formSchema = z.object({
   pages: z
     .union([z.number().int().positive(), z.literal('')])
     .optional(),
-  categoryId: z.string().optional(),
+  categoryId: z.string().min(1, 'Please select a category.'),
   departmentId: z.string().optional(),
   typeId: z.string().optional(),
   isActive: z.string().optional(),
@@ -151,6 +155,7 @@ export default function BookForm({
   const [updateBook, { isLoading: isUpdating }] = useUpdateBookMutation();
   const [uploadSingle]   = useUploadSingleMutation();
   const [uploadMultiple] = useUploadMultipleMutation();
+  const [deleteUploadedFile] = useDeleteUploadedFileMutation();
   const [isUploading, setIsUploading] = useState(false);
   const isSaving = isCreating || isUpdating || isUploading;
 
@@ -158,6 +163,15 @@ export default function BookForm({
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   // Cache-bust key for the cover proxy URL (bumped after successful save)
   const [coverVersion, setCoverVersion] = useState(() => Date.now());
+  const [existingPdfUrls, setExistingPdfUrls] = useState<string[]>(
+    () => initialData?.pdfUrls ?? []
+  );
+  const [removedPdfUrls, setRemovedPdfUrls] = useState<string[]>([]);
+
+  const removeExistingPdf = (url: string) => {
+    setExistingPdfUrls((urls) => urls.filter((item) => item !== url));
+    setRemovedPdfUrls((urls) => (urls.includes(url) ? urls : [...urls, url]));
+  };
 
   // ── Authors tag-input state 
   const authorInputRef = useRef<HTMLInputElement>(null);
@@ -278,6 +292,15 @@ export default function BookForm({
       const hasAudio = values.audioUrl?.[0] instanceof File;
       const extraFiles = values.pdfUrls ? Array.from(values.pdfUrls as FileList) : [];
 
+      if (existingPdfUrls.length + extraFiles.length > MAX_EXTRA_PDFS) {
+        form.setError('pdfUrls', {
+          type: 'manual',
+          message: `Keep or upload no more than ${MAX_EXTRA_PDFS} additional PDFs.`,
+        });
+        setIsUploading(false);
+        return;
+      }
+
       // Create local cover preview immediately
       if (hasCover) {
         const localPreview = URL.createObjectURL(values.coverUrl![0]);
@@ -319,7 +342,7 @@ export default function BookForm({
       // Distribute upload results
       let coverUrl: string | undefined = initialData?.coverUrl ?? undefined;
       let pdfUrl:   string | undefined = initialData?.pdfUrl   ?? undefined;
-      let pdfUrls:  string[] | undefined = initialData?.pdfUrls ?? undefined;
+      let pdfUrls: string[] | undefined = initialData ? existingPdfUrls : undefined;
       let videoUrl: string | undefined = initialData?.videoUrl ?? undefined;
       let audioUrl: string | undefined = initialData?.audioUrl ?? undefined;
 
@@ -328,7 +351,7 @@ export default function BookForm({
         if (key === 'book_files') {
           if (res.data.cover_url) coverUrl = res.data.cover_url;
           if (res.data.pdf_url) pdfUrl = res.data.pdf_url;
-          if (res.data.pdf_urls) pdfUrls = res.data.pdf_urls;
+          if (res.data.pdf_urls) pdfUrls = [...existingPdfUrls, ...res.data.pdf_urls];
         } else if (key === 'video') {
           videoUrl = res.data.video_url;
         } else if (key === 'audio') {
@@ -369,7 +392,7 @@ export default function BookForm({
         ...(values.isbn && { isbn: values.isbn }),
         ...(values.publicationYear && { publicationYear: Number(values.publicationYear) }),
         ...(values.pages && { pages: Number(values.pages) }),
-        ...(values.categoryId && { categoryId: values.categoryId }),
+        categoryId: values.categoryId,
         ...(values.departmentId && { departmentId: values.departmentId }),
         ...(values.typeId && { typeId: values.typeId }),
         ...(values.description && { description: values.description }),
@@ -386,6 +409,12 @@ export default function BookForm({
 
       if (initialData?.id) {
         await updateBook({ id: initialData.id, data: payload }).unwrap();
+        const cleanupResults = await Promise.allSettled(
+          removedPdfUrls.map((file_url) => deleteUploadedFile({ file_url }).unwrap())
+        );
+        if (cleanupResults.some((result) => result.status === 'rejected')) {
+          toast.warning('Book updated, but one or more removed PDF files could not be deleted from storage.');
+        }
         // Bump the cover version so the proxy image reloads with the new file
         setCoverVersion(Date.now());
         router.refresh(); // invalidate Next.js Router Cache so list re-fetches fresh data
@@ -450,9 +479,10 @@ export default function BookForm({
             name='pdfUrls'
             label='Additional PDF Files (optional)'
             description={`Upload up to ${MAX_EXTRA_PDFS} supplementary PDFs — max 50 MB each`}
+            disabled={existingPdfUrls.length >= MAX_EXTRA_PDFS}
             config={{
               maxSize: 50  * 1024 * 1024,
-              maxFiles: MAX_EXTRA_PDFS,
+              maxFiles: MAX_EXTRA_PDFS - existingPdfUrls.length,
               multiple: true,
               acceptedTypes: ['application/pdf'],
             }}
@@ -506,7 +536,7 @@ export default function BookForm({
                   <p className='text-xs text-muted-foreground'>Upload a new image to replace</p>
                 </div>
               )}
-              {(initialData.pdfUrl || (initialData.pdfUrls && initialData.pdfUrls.length > 0)) && (
+              {(initialData.pdfUrl || existingPdfUrls.length > 0) && (
                 <div className='space-y-2'>
                   <p className='text-sm font-medium'>Current PDF(s)</p>
                   <div className='flex flex-col gap-1.5'>
@@ -521,17 +551,29 @@ export default function BookForm({
                         Primary PDF
                       </a>
                     )}
-                    {initialData.pdfUrls?.map((url, i) => (
-                      <a
-                        key={i}
-                        href={url}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted transition-colors'
-                      >
-                        <FileText className='h-4 w-4 text-blue-500' />
-                        Additional PDF {i + 1}
-                      </a>
+                    {existingPdfUrls.map((url, i) => (
+                      <div key={url} className='flex items-center gap-2'>
+                        <a
+                          href={url}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='inline-flex min-w-0 flex-1 items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted'
+                        >
+                          <FileText className='h-4 w-4 shrink-0 text-blue-500' />
+                          <span className='truncate'>Additional PDF {i + 1}</span>
+                        </a>
+                        <Button
+                          type='button'
+                          size='icon'
+                          variant='outline'
+                          className='shrink-0 text-destructive hover:text-destructive'
+                          onClick={() => removeExistingPdf(url)}
+                          aria-label={`Remove additional PDF ${i + 1}`}
+                          title='Remove PDF'
+                        >
+                          <X className='h-4 w-4' />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                   <p className='text-xs text-muted-foreground'>Upload new PDFs to replace</p>
@@ -622,6 +664,7 @@ export default function BookForm({
               label='Category'
               placeholder='Select category'
               options={toOptions(catData?.data ?? [])}
+              required
             />
             <FormSelect
               control={form.control}

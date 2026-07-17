@@ -82,7 +82,7 @@ export interface CreateBookPayload {
   pdfUrl?:          string;
   pdfUrls?:         string[];
   pages?:           number;
-  categoryId?:      string;
+  categoryId:       string;
   publisherId?:     string;
   departmentId?:    string;
   typeId?:          string;
