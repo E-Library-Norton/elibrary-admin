@@ -82,8 +82,8 @@ export interface CreateBookPayload {
   pages?: number;
   categoryId: string;
   publisherId?: string;
-  departmentId?: string;
-  typeId?: string;
+  departmentId: string;
+  typeId: string;
   isActive?: boolean;
   authorIds?: { id: string; isPrimaryAuthor?: boolean }[];
   authorNames?: string[]; // find-or-create by name

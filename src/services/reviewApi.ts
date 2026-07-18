@@ -131,7 +131,10 @@ export const reviewApi = api.injectEndpoints({
         url:    `/reviews/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Review', id: 'LIST' }],
+      invalidatesTags: [
+        { type: 'Review', id: 'LIST' },
+        { type: 'Review', id: 'STATS' },
+      ],
     }),
 
     // PUT /api/reviews/:id  (admin edits rating/comment)

@@ -113,8 +113,8 @@ const formSchema = z.object({
     .optional(),
   pages: z.union([z.number().int().positive(), z.literal("")]).optional(),
   categoryId: z.string().min(1, "Please select a category."),
-  departmentId: z.string().optional(),
-  typeId: z.string().optional(),
+  departmentId: z.string().min(1, "Please select a department."),
+  typeId: z.string().min(1, "Please select a material type."),
   isActive: z.string().optional(),
   description: z
     .string()
@@ -391,8 +391,8 @@ export default function BookForm({
         }),
         ...(values.pages && { pages: Number(values.pages) }),
         categoryId: values.categoryId,
-        ...(values.departmentId && { departmentId: values.departmentId }),
-        ...(values.typeId && { typeId: values.typeId }),
+        departmentId: values.departmentId,
+        typeId: values.typeId,
         ...(values.description && { description: values.description }),
         isActive: values.isActive === "true",
         ...(finalAuthorNames.length > 0 && { authorNames: finalAuthorNames }),
@@ -650,6 +650,7 @@ export default function BookForm({
               label="Department"
               placeholder="Select department"
               options={toOptions(deptData?.data ?? [])}
+              required
             />
             <FormSelect
               control={form.control}
@@ -657,6 +658,7 @@ export default function BookForm({
               label="Material Type"
               placeholder="Select type"
               options={toOptions(typeData?.data ?? [])}
+              required
             />
             {/* Status */}
             <FormSelect
