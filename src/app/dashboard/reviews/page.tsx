@@ -6,8 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -42,14 +40,12 @@ import {
   IconBook,
   IconUser,
   IconMessageCircle,
-  IconEdit,
 } from '@tabler/icons-react';
 import { MoreHorizontal } from 'lucide-react';
 import {
   useGetReviewsQuery,
   useGetReviewStatsQuery,
   useDeleteReviewMutation,
-  useUpdateReviewMutation,
   type Review,
 } from '@/services/reviewApi';
 import { toast } from 'sonner';
@@ -67,33 +63,6 @@ function StarRatingDisplay({ rating }: { rating: number }) {
         )
       )}
     </div>
-  );
-}
-
-function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [hovered, setHovered] = useState(0);
-  return (
-    <span className='flex items-center gap-0.5'>
-      {[1, 2, 3, 4, 5].map((i) =>
-        i <= (hovered || value) ? (
-          <IconStarFilled
-            key={i}
-            className='h-7 w-7 text-amber-400 cursor-pointer transition-transform hover:scale-110'
-            onClick={() => onChange(i)}
-            onMouseEnter={() => setHovered(i)}
-            onMouseLeave={() => setHovered(0)}
-          />
-        ) : (
-          <IconStar
-            key={i}
-            className='h-7 w-7 text-muted-foreground/40 cursor-pointer transition-transform hover:scale-110'
-            onClick={() => onChange(i)}
-            onMouseEnter={() => setHovered(i)}
-            onMouseLeave={() => setHovered(0)}
-          />
-        )
-      )}
-    </span>
   );
 }
 
@@ -117,12 +86,6 @@ export default function ReviewsPage() {
   const [selectedReview, setSelected] = useState<Review | null>(null);
   const [detailOpen, setDetailOpen]   = useState(false);
 
-  // Edit inline (inside detail dialog)
-  const [editRating, setEditRating]   = useState(0);
-  const [editComment, setEditComment] = useState('');
-  const [editOpen, setEditOpen]       = useState(false);
-  const [editReview, setEditReview]   = useState<Review | null>(null);
-
   // Delete confirm
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -143,7 +106,6 @@ export default function ReviewsPage() {
 
   // Mutations
   const [deleteReview, { isLoading: isDeleting }] = useDeleteReviewMutation();
-  const [updateReview, { isLoading: isUpdating }] = useUpdateReviewMutation();
 
   const reviews    = data?.data.reviews    ?? [];
   const total      = data?.data.total      ?? 0;
@@ -156,13 +118,6 @@ export default function ReviewsPage() {
     setDetailOpen(true);
   };
 
-  const openEdit = (r: Review) => {
-    setEditReview(r);
-    setEditRating(r.rating);
-    setEditComment(r.comment ?? '');
-    setEditOpen(true);
-  };
-
   const handleDelete = async (id: string) => {
     try {
       await deleteReview(id).unwrap();
@@ -171,24 +126,6 @@ export default function ReviewsPage() {
       if (detailOpen) setDetailOpen(false);
     } catch {
       toast.error('Failed to delete review');
-    }
-  };
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editReview) return;
-    if (!editRating) { toast.error('Please select a rating'); return; }
-    try {
-      await updateReview({
-        id:      editReview.id,
-        rating:  editRating,
-        comment: editComment.trim() || undefined,
-      }).unwrap();
-      toast.success('Review updated successfully');
-      setEditOpen(false);
-      if (detailOpen && selectedReview?.id === editReview.id) setDetailOpen(false);
-    } catch (err: any) {
-      toast.error(err?.data?.message || 'Failed to update review');
     }
   };
 
@@ -379,9 +316,6 @@ export default function ReviewsPage() {
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openDetail(review); }}>
                                 <IconEye className='mr-2 h-3.5 w-3.5' /> View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(review); }}>
-                                <IconEdit className='mr-2 h-3.5 w-3.5' /> Edit
-                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className='text-destructive focus:text-destructive'
@@ -503,80 +437,11 @@ export default function ReviewsPage() {
                 <Button variant='destructive' size='sm' onClick={() => { setDeleteId(selectedReview.id); setDetailOpen(false); }}>
                   <IconTrash className='h-4 w-4 mr-1' /> Delete
                 </Button>
-                <Button variant='outline' size='sm' onClick={() => { setDetailOpen(false); openEdit(selectedReview); }}>
-                  <IconEdit className='h-4 w-4 mr-1' /> Edit
-                </Button>
                 <Button variant='outline' size='sm' onClick={() => setDetailOpen(false)}>
                   Close
                 </Button>
               </DialogFooter>
             </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Edit Dialog ── */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className='max-w-lg'>
-          <DialogHeader>
-            <DialogTitle>Edit Review</DialogTitle>
-            <DialogDescription>Update the rating or comment for this review.</DialogDescription>
-          </DialogHeader>
-          {editReview && (
-            <form onSubmit={handleUpdate} className='space-y-5'>
-              {/* Book info read-only */}
-              {editReview.Book && (
-                <div className='flex items-center gap-3 rounded-lg bg-muted/50 p-3'>
-                  <img
-                    src={`/api/books/${editReview.Book.id}/cover`}
-                    alt={editReview.Book.title}
-                    className='h-14 w-10 rounded object-cover shrink-0 bg-muted'
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = 'none';
-                      (e.currentTarget.nextElementSibling as HTMLElement | null)?.classList.remove('hidden');
-                    }}
-                  />
-                  <div className='h-14 w-10 rounded bg-muted hidden items-center justify-center shrink-0'>
-                    <IconBook className='h-5 w-5 text-muted-foreground' />
-                  </div>
-                  <div>
-                    <p className='font-medium text-sm'>{editReview.Book.title}</p>
-                    {editReview.User && (
-                      <p className='text-xs text-muted-foreground mt-0.5'>
-                        by {editReview.User.firstName ?? ''} {editReview.User.lastName ?? editReview.User.username}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-              <div className='space-y-1.5'>
-                <Label>Rating <span className='text-destructive'>*</span></Label>
-                <StarPicker value={editRating} onChange={setEditRating} />
-                {editRating > 0 && (
-                  <p className='text-xs text-muted-foreground'>
-                    {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][editRating]} — {editRating}/5
-                  </p>
-                )}
-              </div>
-              <div className='space-y-1.5'>
-                <Label>Comment <span className='text-muted-foreground text-xs'>(optional)</span></Label>
-                <Textarea
-                  placeholder='Write a review comment…'
-                  value={editComment}
-                  onChange={(e) => setEditComment(e.target.value)}
-                  maxLength={1000}
-                  rows={3}
-                  className='resize-none'
-                />
-                <p className='text-xs text-muted-foreground text-right'>{editComment.length}/1000</p>
-              </div>
-              <DialogFooter className='gap-2'>
-                <Button type='button' variant='outline' onClick={() => setEditOpen(false)}>Cancel</Button>
-                <Button type='submit' disabled={isUpdating || !editRating}>
-                  {isUpdating ? 'Saving…' : 'Save Changes'}
-                </Button>
-              </DialogFooter>
-            </form>
           )}
         </DialogContent>
       </Dialog>

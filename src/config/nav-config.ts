@@ -120,12 +120,6 @@ export const navItems: NavItem[] = [
         icon: 'settings',
         shortcut: ['s', 't']
       },
-      {
-        title: 'Billing',
-        url: '/dashboard/billing',
-        icon: 'billing',
-        shortcut: ['b', 'b'],
-      },
     ]
   }
 ];

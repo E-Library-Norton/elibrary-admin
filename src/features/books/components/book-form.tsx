@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Loader2, FileText, X, Video, Headphones } from "lucide-react";
 import Image from "next/image";
@@ -147,6 +147,13 @@ export default function BookForm({
   pageTitle: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedReturnPath = searchParams.get("returnTo");
+  const booksListPath =
+    requestedReturnPath === "/dashboard/books" ||
+    requestedReturnPath?.startsWith("/dashboard/books?")
+      ? requestedReturnPath
+      : "/dashboard/books";
 
   const [createBook, { isLoading: isCreating }] = useCreateBookMutation();
   const [updateBook, { isLoading: isUpdating }] = useUpdateBookMutation();
@@ -410,13 +417,12 @@ export default function BookForm({
         await updateBook({ id: initialData.id, data: payload }).unwrap();
         // Bump the cover version so the proxy image reloads with the new file
         setCoverVersion(Date.now());
-        router.refresh(); // invalidate Next.js Router Cache so list re-fetches fresh data
         toast.success("Book updated successfully!");
       } else {
         await createBook(payload).unwrap();
         toast.success("Book created successfully!");
       }
-      router.push("/dashboard/books");
+      router.replace(booksListPath);
     } catch (err: any) {
       setIsUploading(false);
       console.error("Failed to save book:", err);

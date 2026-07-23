@@ -1,4 +1,3 @@
-
 'use client';
 
 import PageContainer from '@/components/layout/page-container';
@@ -9,35 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,28 +20,10 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import {
-  Pencil,
-  Trash2,
-  UserPlus,
-  Search,
-  X,
-  Loader2,
-  MoreHorizontal,
-  ChevronLeft,
-  ChevronRight,
-  Camera
-} from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pencil, Trash2, UserPlus, Search, X, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import {
   useGetUsersQuery,
   useCreateUserMutation,
@@ -76,13 +32,14 @@ import {
   useUploadUserAvatarMutation,
   type User,
   type Role,
-  type CreateUserPayload
+  type CreateUserPayload,
 } from '@/services/userApi';
 import { useGetRolesQuery } from '@/services/roleApi';
 import { useRole } from '@/hooks/use-role';
 import { toast } from 'sonner';
+import { getPasswordValidationError, PASSWORD_REQUIREMENTS } from '@/lib/password-validation';
 
-// ── Skeleton loader for the table 
+// ── Skeleton loader for the table
 function UserTableSkeleton() {
   return (
     <Card>
@@ -119,15 +76,21 @@ function UserTableSkeleton() {
                     </div>
                   </div>
                 </TableCell>
-                <TableCell><Skeleton className='h-3 w-20' /></TableCell>
+                <TableCell>
+                  <Skeleton className='h-3 w-20' />
+                </TableCell>
                 <TableCell>
                   <div className='flex gap-1'>
                     <Skeleton className='h-5 w-14 rounded-full' />
                     <Skeleton className='h-5 w-16 rounded-full' />
                   </div>
                 </TableCell>
-                <TableCell><Skeleton className='h-5 w-14 rounded-full' /></TableCell>
-                <TableCell><Skeleton className='h-7 w-7 rounded-md' /></TableCell>
+                <TableCell>
+                  <Skeleton className='h-5 w-14 rounded-full' />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className='h-7 w-7 rounded-md' />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -137,19 +100,14 @@ function UserTableSkeleton() {
   );
 }
 
-// ── Helpers 
-const roleBadge = (
-  name: string
-): 'default' | 'secondary' | 'destructive' | 'outline' => {
+// ── Helpers
+const roleBadge = (name: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
   if (name === 'admin') return 'destructive';
   if (name === 'librarian') return 'default';
   return 'secondary';
 };
 
-const initials = (u: User) =>
-  `${u.firstName?.[0] ?? ''}${u.lastName?.[0] ?? ''}`.toUpperCase() ||
-  u.username?.[0]?.toUpperCase() ||
-  '?';
+const initials = (u: User) => `${u.firstName?.[0] ?? ''}${u.lastName?.[0] ?? ''}`.toUpperCase() || u.username?.[0]?.toUpperCase() || '?';
 
 const emptyUser = () => ({
   username: '',
@@ -159,7 +117,7 @@ const emptyUser = () => ({
   firstName: '',
   lastName: '',
   isActive: true,
-  Roles: [] as Role[]
+  Roles: [] as Role[],
 });
 
 const pageNumbers = (cur: number, total: number): (number | '…')[] => {
@@ -171,25 +129,13 @@ const pageNumbers = (cur: number, total: number): (number | '…')[] => {
   return out;
 };
 
-// ── Role Selector 
-function RoleSelector({
-  allRoles,
-  selectedRoles,
-  onChange
-}: {
-  allRoles: Role[];
-  selectedRoles: Role[];
-  onChange: (r: Role[]) => void;
-}) {
+// ── Role Selector
+function RoleSelector({ allRoles, selectedRoles, onChange }: { allRoles: Role[]; selectedRoles: Role[]; onChange: (r: Role[]) => void }) {
   return (
     <div className='space-y-2'>
       <Label>Roles</Label>
       <div className='bg-muted/30 flex min-h-9 flex-wrap gap-1.5 rounded-md border p-2'>
-        {selectedRoles.length === 0 && (
-          <span className='text-muted-foreground self-center text-xs'>
-            No roles assigned
-          </span>
-        )}
+        {selectedRoles.length === 0 && <span className='text-muted-foreground self-center text-xs'>No roles assigned</span>}
         {selectedRoles.map((r) => (
           <Badge key={r.id} variant={roleBadge(r.name)} className='gap-1 pr-1'>
             {r.name}
@@ -211,8 +157,7 @@ function RoleSelector({
       <Select
         onValueChange={(val) => {
           const role = allRoles.find((r) => r.id === val);
-          if (role && !selectedRoles.find((r) => r.id === role.id))
-            onChange([...selectedRoles, role]);
+          if (role && !selectedRoles.find((r) => r.id === role.id)) onChange([...selectedRoles, role]);
         }}
       >
         <SelectTrigger>
@@ -224,9 +169,7 @@ function RoleSelector({
             .map((r) => (
               <SelectItem key={r.id} value={r.id}>
                 <span className='font-medium'>{r.name}</span>
-                <span className='text-muted-foreground ml-2 text-xs'>
-                  {r.description}
-                </span>
+                <span className='text-muted-foreground ml-2 text-xs'>{r.description}</span>
               </SelectItem>
             ))}
         </SelectContent>
@@ -252,7 +195,7 @@ function UserForm({
   userId,
   onAvatarFileChange,
   errors,
-  onChange
+  onChange,
 }: {
   data: Omit<User, 'id'> & { password?: string };
   allRoles: Role[];
@@ -288,11 +231,7 @@ function UserForm({
           <div className='relative'>
             {currentAvatar ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={currentAvatar}
-                alt={displayInitials}
-                className='h-16 w-16 rounded-full object-cover ring-2 ring-border'
-              />
+              <img src={currentAvatar} alt={displayInitials} className='h-16 w-16 rounded-full object-cover ring-2 ring-border' />
             ) : (
               <div className='bg-primary/10 text-primary flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold ring-2 ring-border'>
                 {displayInitials}
@@ -311,69 +250,34 @@ function UserForm({
             <p className='text-sm font-medium'>Profile Photo</p>
             <p className='text-muted-foreground text-xs'>Click the camera icon to upload a new photo (max 5 MB)</p>
           </div>
-          <input
-            ref={fileInputRef}
-            type='file'
-            accept='image/*'
-            className='hidden'
-            onChange={handleFileChange}
-          />
+          <input ref={fileInputRef} type='file' accept='image/*' className='hidden' onChange={handleFileChange} />
         </div>
       )}
       <div className='grid grid-cols-2 gap-3'>
         <div className='space-y-1'>
           <Label className={errors?.firstName ? 'text-destructive' : ''}>First Name</Label>
-          <Input
-            value={data.firstName}
-            onChange={(e) => onChange('firstName', e.target.value)}
-            placeholder='First'
-            aria-invalid={!!errors?.firstName}
-          />
-          {errors?.firstName && (
-            <p className='text-destructive text-[0.8rem] font-medium'>{errors.firstName}</p>
-          )}
+          <Input value={data.firstName} onChange={(e) => onChange('firstName', e.target.value)} placeholder='First' aria-invalid={!!errors?.firstName} />
+          {errors?.firstName && <p className='text-destructive text-[0.8rem] font-medium'>{errors.firstName}</p>}
         </div>
         <div className='space-y-1'>
           <Label className={errors?.lastName ? 'text-destructive' : ''}>Last Name</Label>
-          <Input
-            value={data.lastName}
-            onChange={(e) => onChange('lastName', e.target.value)}
-            placeholder='Last'
-            aria-invalid={!!errors?.lastName}
-          />
-          {errors?.lastName && (
-            <p className='text-destructive text-[0.8rem] font-medium'>{errors.lastName}</p>
-          )}
+          <Input value={data.lastName} onChange={(e) => onChange('lastName', e.target.value)} placeholder='Last' aria-invalid={!!errors?.lastName} />
+          {errors?.lastName && <p className='text-destructive text-[0.8rem] font-medium'>{errors.lastName}</p>}
         </div>
       </div>
       <div className='space-y-1'>
         <Label className={errors?.username ? 'text-destructive' : ''}>
           Username <span className='text-destructive'>*</span>
         </Label>
-        <Input
-          value={data.username}
-          onChange={(e) => onChange('username', e.target.value)}
-          placeholder='username'
-          aria-invalid={!!errors?.username}
-        />
-        {errors?.username && (
-          <p className='text-destructive text-[0.8rem] font-medium'>{errors.username}</p>
-        )}
+        <Input value={data.username} onChange={(e) => onChange('username', e.target.value)} placeholder='username' aria-invalid={!!errors?.username} />
+        {errors?.username && <p className='text-destructive text-[0.8rem] font-medium'>{errors.username}</p>}
       </div>
       <div className='space-y-1'>
         <Label className={errors?.email ? 'text-destructive' : ''}>
           Email <span className='text-destructive'>*</span>
         </Label>
-        <Input
-          type='email'
-          value={data.email}
-          onChange={(e) => onChange('email', e.target.value)}
-          placeholder='user@edu.com'
-          aria-invalid={!!errors?.email}
-        />
-        {errors?.email && (
-          <p className='text-destructive text-[0.8rem] font-medium'>{errors.email}</p>
-        )}
+        <Input type='email' value={data.email} onChange={(e) => onChange('email', e.target.value)} placeholder='user@edu.com' aria-invalid={!!errors?.email} />
+        {errors?.email && <p className='text-destructive text-[0.8rem] font-medium'>{errors.email}</p>}
       </div>
       {showPassword && (
         <div className='space-y-1'>
@@ -384,33 +288,22 @@ function UserForm({
             type='password'
             value={(data as { password?: string }).password ?? ''}
             onChange={(e) => onChange('password', e.target.value)}
-            placeholder='Min 8 characters'
+            placeholder='8-20 characters'
             aria-invalid={!!errors?.password}
           />
-          {errors?.password && (
-            <p className='text-destructive text-[0.8rem] font-medium'>{errors.password}</p>
-          )}
+          {!errors?.password && <p className='text-muted-foreground text-xs'>{PASSWORD_REQUIREMENTS}</p>}
+          {errors?.password && <p className='text-destructive text-[0.8rem] font-medium'>{errors.password}</p>}
         </div>
       )}
       <div className='grid grid-cols-2 gap-3'>
         <div className='space-y-1'>
           <Label className={errors?.studentId ? 'text-destructive' : ''}>Student ID</Label>
-          <Input
-            value={data.studentId}
-            onChange={(e) => onChange('studentId', e.target.value)}
-            placeholder='A20231879'
-            aria-invalid={!!errors?.studentId}
-          />
-          {errors?.studentId && (
-            <p className='text-destructive text-[0.8rem] font-medium'>{errors.studentId}</p>
-          )}
+          <Input value={data.studentId} onChange={(e) => onChange('studentId', e.target.value)} placeholder='A20231879' aria-invalid={!!errors?.studentId} />
+          {errors?.studentId && <p className='text-destructive text-[0.8rem] font-medium'>{errors.studentId}</p>}
         </div>
         <div className='space-y-1'>
           <Label>Status</Label>
-          <Select
-            value={data.isActive ? 'active' : 'inactive'}
-            onValueChange={(v) => onChange('isActive', v === 'active')}
-          >
+          <Select value={data.isActive ? 'active' : 'inactive'} onValueChange={(v) => onChange('isActive', v === 'active')}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -421,16 +314,12 @@ function UserForm({
           </Select>
         </div>
       </div>
-      <RoleSelector
-        allRoles={allRoles}
-        selectedRoles={data.Roles}
-        onChange={(r) => onChange('Roles', r)}
-      />
+      <RoleSelector allRoles={allRoles} selectedRoles={data.Roles} onChange={(r) => onChange('Roles', r)} />
     </div>
   );
 }
 
-// 
+//
 export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -444,14 +333,13 @@ export default function UsersPage() {
   const { data, isLoading, isFetching, isError, refetch } = useGetUsersQuery({
     page,
     limit: 10,
-    search
+    search,
   });
   const { data: rolesData } = useGetRolesQuery();
 
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
   const [updateUser] = useUpdateUserMutation();
-  const [deleteUserMutation, { isLoading: isDeleting }] =
-    useDeleteUserMutation();
+  const [deleteUserMutation, { isLoading: isDeleting }] = useDeleteUserMutation();
   const [uploadUserAvatar] = useUploadUserAvatarMutation();
 
   // pending avatar file selected in the edit dialog
@@ -462,14 +350,14 @@ export default function UsersPage() {
   const totalPages = data?.data.pagination?.totalPages ?? 1;
   const allRoles = rolesData?.data ?? [];
 
-  // ── Open edit dialog 
+  // ── Open edit dialog
   const openEdit = (u: User) => {
     setEditUser({ ...u, Roles: [...u.Roles] });
     setPendingAvatarFile(null);
     setErrors({});
   };
 
-  // ── Save edit 
+  // ── Save edit
   const handleSaveEdit = async () => {
     if (!editUser) return;
 
@@ -505,7 +393,10 @@ export default function UsersPage() {
     try {
       // ── Upload avatar first if a new file was selected ────────────────────
       if (pendingAvatarFile) {
-        await uploadUserAvatar({ id: editUser.id, file: pendingAvatarFile }).unwrap();
+        await uploadUserAvatar({
+          id: editUser.id,
+          file: pendingAvatarFile,
+        }).unwrap();
         setPendingAvatarFile(null);
       }
 
@@ -520,7 +411,7 @@ export default function UsersPage() {
           lastName: editUser.lastName,
           isActive: editUser.isActive,
           roleIds: editUser.Roles.map((r) => r.id),
-        }
+        },
       }).unwrap();
 
       await refetch();
@@ -533,11 +424,11 @@ export default function UsersPage() {
 
       // Map backend conflict error to form field errors
       if (errMsg.toLowerCase().includes('username')) {
-        setErrors(prev => ({ ...prev, username: errMsg }));
+        setErrors((prev) => ({ ...prev, username: errMsg }));
       } else if (errMsg.toLowerCase().includes('email')) {
-        setErrors(prev => ({ ...prev, email: errMsg }));
+        setErrors((prev) => ({ ...prev, email: errMsg }));
       } else if (errMsg.toLowerCase().includes('student id')) {
-        setErrors(prev => ({ ...prev, studentId: errMsg }));
+        setErrors((prev) => ({ ...prev, studentId: errMsg }));
       }
     } finally {
       setIsSaving(false);
@@ -547,7 +438,7 @@ export default function UsersPage() {
 
   const { can } = useRole();
 
-  // ── Create 
+  // ── Create
   const handleCreate = async () => {
     // ── Input Validation ──
     const validationErrors: FormErrors = {};
@@ -574,8 +465,11 @@ export default function UsersPage() {
     const password = newUser.password;
     if (!password) {
       validationErrors.password = 'Password is required';
-    } else if (password.length < 8) {
-      validationErrors.password = 'Password must be at least 8 characters';
+    } else {
+      const passwordError = getPasswordValidationError(password);
+      if (passwordError) {
+        validationErrors.password = passwordError;
+      }
     }
 
     if (Object.keys(validationErrors).length > 0) {
@@ -595,14 +489,14 @@ export default function UsersPage() {
         password,
         studentId: studentId || undefined,
         firstName: firstName || undefined,
-        lastName: lastName || undefined
+        lastName: lastName || undefined,
       };
       const res = await createUser(payload).unwrap();
 
       if (newUser.Roles.length > 0) {
         await updateUser({
           id: res.data.id,
-          data: { roleIds: newUser.Roles.map((r) => r.id) }
+          data: { roleIds: newUser.Roles.map((r) => r.id) },
         }).unwrap();
       }
 
@@ -619,11 +513,11 @@ export default function UsersPage() {
 
       // Map backend conflict error to form field errors
       if (errMsg.toLowerCase().includes('username')) {
-        setErrors(prev => ({ ...prev, username: errMsg }));
+        setErrors((prev) => ({ ...prev, username: errMsg }));
       } else if (errMsg.toLowerCase().includes('email')) {
-        setErrors(prev => ({ ...prev, email: errMsg }));
+        setErrors((prev) => ({ ...prev, email: errMsg }));
       } else if (errMsg.toLowerCase().includes('student id')) {
-        setErrors(prev => ({ ...prev, studentId: errMsg }));
+        setErrors((prev) => ({ ...prev, studentId: errMsg }));
       }
     }
   };
@@ -645,11 +539,7 @@ export default function UsersPage() {
 
   if (isLoading)
     return (
-      <PageContainer
-        pageTitle='Users Management'
-        pageDescription='Manage users, roles and access.'
-        infoContent={teamInfoContent}
-      >
+      <PageContainer pageTitle='Users Management' pageDescription='Manage users, roles and access.' infoContent={teamInfoContent}>
         <div className='space-y-4'>
           <UserTableSkeleton />
         </div>
@@ -658,31 +548,18 @@ export default function UsersPage() {
 
   if (isError)
     return (
-      <PageContainer
-        pageTitle='Users Management'
-        pageDescription='Manage users, roles and access.'
-        infoContent={teamInfoContent}
-      >
+      <PageContainer pageTitle='Users Management' pageDescription='Manage users, roles and access.' infoContent={teamInfoContent}>
         <div className='flex h-64 flex-col items-center justify-center gap-3'>
           <p className='text-destructive'>Failed to load users.</p>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => window.location.reload()}
-          >
+          <Button variant='outline' size='sm' onClick={() => window.location.reload()}>
             Retry
           </Button>
         </div>
       </PageContainer>
     );
 
-
   return (
-    <PageContainer
-      pageTitle='Users Management'
-      pageDescription='Manage users, roles and access.'
-      infoContent={teamInfoContent}
-    >
+    <PageContainer pageTitle='Users Management' pageDescription='Manage users, roles and access.' infoContent={teamInfoContent}>
       <div className='space-y-4'>
         <Card>
           <CardHeader className='pb-3'>
@@ -690,9 +567,7 @@ export default function UsersPage() {
               <div>
                 <CardTitle className='text-base'>All Users</CardTitle>
                 <CardDescription className='text-xs'>
-                  {isFetching
-                    ? <Skeleton className='h-3 w-28 inline-block align-middle' />
-                    : `${total} total users`}
+                  {isFetching ? <Skeleton className='h-3 w-28 inline-block align-middle' /> : `${total} total users`}
                 </CardDescription>
               </div>
               {can('users.create') && (
@@ -740,10 +615,7 @@ export default function UsersPage() {
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className='text-muted-foreground py-12 text-center'
-                      >
+                      <TableCell colSpan={5} className='text-muted-foreground py-12 text-center'>
                         No users found
                       </TableCell>
                     </TableRow>
@@ -759,10 +631,21 @@ export default function UsersPage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell><Skeleton className='h-3 w-20' /></TableCell>
-                        <TableCell><div className='flex gap-1'><Skeleton className='h-5 w-14 rounded-full' /><Skeleton className='h-5 w-16 rounded-full' /></div></TableCell>
-                        <TableCell><Skeleton className='h-5 w-14 rounded-full' /></TableCell>
-                        <TableCell><Skeleton className='h-7 w-7 rounded-md' /></TableCell>
+                        <TableCell>
+                          <Skeleton className='h-3 w-20' />
+                        </TableCell>
+                        <TableCell>
+                          <div className='flex gap-1'>
+                            <Skeleton className='h-5 w-14 rounded-full' />
+                            <Skeleton className='h-5 w-16 rounded-full' />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className='h-5 w-14 rounded-full' />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className='h-7 w-7 rounded-md' />
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
@@ -776,10 +659,15 @@ export default function UsersPage() {
                                 src={`/api/users/${u.id}/avatar`}
                                 alt={initials(u)}
                                 className='h-8 w-8 shrink-0 rounded-full object-cover'
-                                onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'flex'); }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'flex');
+                                }}
                               />
                             ) : null}
-                            <div className={`bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold${u.avatar ? ' hidden' : ''}`}>
+                            <div
+                              className={`bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold${u.avatar ? ' hidden' : ''}`}
+                            >
                               {initials(u)}
                             </div>
                             <div className='min-w-0'>
@@ -793,9 +681,7 @@ export default function UsersPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className='font-mono text-xs'>
-                            {u.studentId || '—'}
-                          </span>
+                          <span className='font-mono text-xs'>{u.studentId || '—'}</span>
                         </TableCell>
 
                         {/*  Roles cell */}
@@ -805,11 +691,7 @@ export default function UsersPage() {
                               <span className='text-muted-foreground text-xs'>—</span>
                             ) : (
                               u.Roles.map((r) => (
-                                <Badge
-                                  key={r.id}
-                                  variant={roleBadge(r.name)}
-                                  className='text-xs whitespace-nowrap'
-                                >
+                                <Badge key={r.id} variant={roleBadge(r.name)} className='text-xs whitespace-nowrap'>
                                   {r.name}
                                 </Badge>
                               ))
@@ -817,13 +699,8 @@ export default function UsersPage() {
                           </div>
                         </TableCell>
 
-
-
                         <TableCell>
-                          <Badge
-                            variant={u.isActive ? 'default' : 'outline'}
-                            className='text-xs'
-                          >
+                          <Badge variant={u.isActive ? 'default' : 'outline'} className='text-xs'>
                             {u.isActive ? 'Active' : 'Inactive'}
                           </Badge>
                         </TableCell>
@@ -832,11 +709,7 @@ export default function UsersPage() {
                           {(can('users.update') || can('users.delete')) && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  className='h-8 w-8'
-                                >
+                                <Button variant='ghost' size='icon' className='h-8 w-8'>
                                   <MoreHorizontal className='h-4 w-4' />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -848,10 +721,7 @@ export default function UsersPage() {
                                 )}
                                 {can('users.update') && can('users.delete') && <DropdownMenuSeparator />}
                                 {can('users.delete') && (
-                                  <DropdownMenuItem
-                                    className='text-destructive focus:text-destructive'
-                                    onClick={() => setDeleteUser(u)}
-                                  >
+                                  <DropdownMenuItem className='text-destructive focus:text-destructive' onClick={() => setDeleteUser(u)}>
                                     <Trash2 className='mr-2 h-3.5 w-3.5' /> Delete
                                   </DropdownMenuItem>
                                 )}
@@ -868,16 +738,9 @@ export default function UsersPage() {
 
             {/* Mobile cards */}
             <div className='divide-y md:hidden'>
-              {users.length === 0 && (
-                <p className='text-muted-foreground py-10 text-center text-sm'>
-                  No users found
-                </p>
-              )}
+              {users.length === 0 && <p className='text-muted-foreground py-10 text-center text-sm'>No users found</p>}
               {users.map((u) => (
-                <div
-                  key={u.id}
-                  className='flex items-start justify-between gap-3 p-4'
-                >
+                <div key={u.id} className='flex items-start justify-between gap-3 p-4'>
                   <div className='flex min-w-0 gap-3'>
                     {u.avatar ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -885,36 +748,30 @@ export default function UsersPage() {
                         src={`/api/users/${u.id}/avatar`}
                         alt={initials(u)}
                         className='h-9 w-9 shrink-0 rounded-full object-cover'
-                        onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'flex'); }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'flex');
+                        }}
                       />
                     ) : null}
-                    <div className={`bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold${u.avatar ? ' hidden' : ''}`}>
+                    <div
+                      className={`bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold${u.avatar ? ' hidden' : ''}`}
+                    >
                       {initials(u)}
                     </div>
                     <div className='min-w-0 space-y-0.5'>
                       <p className='text-sm font-medium'>
                         {u.firstName} {u.lastName}
                       </p>
-                      <p className='text-muted-foreground truncate text-xs'>
-                        {u.email}
-                      </p>
-                      <p className='text-muted-foreground font-mono text-xs'>
-                        {u.studentId || '—'}
-                      </p>
+                      <p className='text-muted-foreground truncate text-xs'>{u.email}</p>
+                      <p className='text-muted-foreground font-mono text-xs'>{u.studentId || '—'}</p>
                       <div className='flex flex-wrap gap-1 pt-1'>
                         {u.Roles.map((r) => (
-                          <Badge
-                            key={r.id}
-                            variant={roleBadge(r.name)}
-                            className='h-4 px-1 text-xs'
-                          >
+                          <Badge key={r.id} variant={roleBadge(r.name)} className='h-4 px-1 text-xs'>
                             {r.name}
                           </Badge>
                         ))}
-                        <Badge
-                          variant={u.isActive ? 'default' : 'outline'}
-                          className='h-4 px-1 text-xs'
-                        >
+                        <Badge variant={u.isActive ? 'default' : 'outline'} className='h-4 px-1 text-xs'>
                           {u.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </div>
@@ -923,11 +780,7 @@ export default function UsersPage() {
                   {(can('users.update') || can('users.delete')) && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='h-8 w-8 shrink-0'
-                        >
+                        <Button variant='ghost' size='icon' className='h-8 w-8 shrink-0'>
                           <MoreHorizontal className='h-4 w-4' />
                         </Button>
                       </DropdownMenuTrigger>
@@ -939,10 +792,7 @@ export default function UsersPage() {
                         )}
                         {can('users.update') && can('users.delete') && <DropdownMenuSeparator />}
                         {can('users.delete') && (
-                          <DropdownMenuItem
-                            className='text-destructive'
-                            onClick={() => setDeleteUser(u)}
-                          >
+                          <DropdownMenuItem className='text-destructive' onClick={() => setDeleteUser(u)}>
                             <Trash2 className='mr-2 h-3.5 w-3.5' /> Delete
                           </DropdownMenuItem>
                         )}
@@ -960,42 +810,21 @@ export default function UsersPage() {
                   Page {page} of {totalPages} · {total} users
                 </span>
                 <div className='flex items-center gap-1'>
-                  <Button
-                    variant='outline'
-                    size='icon'
-                    className='h-7 w-7'
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
+                  <Button variant='outline' size='icon' className='h-7 w-7' disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                     <ChevronLeft className='h-3.5 w-3.5' />
                   </Button>
                   {pageNumbers(page, totalPages).map((p, i) =>
                     p === '…' ? (
-                      <span
-                        key={`d${i}`}
-                        className='text-muted-foreground px-1'
-                      >
+                      <span key={`d${i}`} className='text-muted-foreground px-1'>
                         …
                       </span>
                     ) : (
-                      <Button
-                        key={p}
-                        variant={page === p ? 'default' : 'outline'}
-                        size='icon'
-                        className='h-7 w-7 text-xs'
-                        onClick={() => setPage(p as number)}
-                      >
+                      <Button key={p} variant={page === p ? 'default' : 'outline'} size='icon' className='h-7 w-7 text-xs' onClick={() => setPage(p as number)}>
                         {p}
                       </Button>
-                    )
+                    ),
                   )}
-                  <Button
-                    variant='outline'
-                    size='icon'
-                    className='h-7 w-7'
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
+                  <Button variant='outline' size='icon' className='h-7 w-7' disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
                     <ChevronRight className='h-3.5 w-3.5' />
                   </Button>
                 </div>
@@ -1021,9 +850,7 @@ export default function UsersPage() {
             <DialogTitle className='flex items-center gap-2'>
               <Pencil className='h-4 w-4' /> Edit User
             </DialogTitle>
-            <DialogDescription>
-              Update user details and roles.
-            </DialogDescription>
+            <DialogDescription>Update user details and roles.</DialogDescription>
           </DialogHeader>
           {editUser && (
             <UserForm
@@ -1050,13 +877,8 @@ export default function UsersPage() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={isSaving}
-              className='gap-1.5'
-            >
-              {isSaving && <Loader2 className='h-3.5 w-3.5 animate-spin' />}{' '}
-              Save Changes
+            <Button onClick={handleSaveEdit} disabled={isSaving} className='gap-1.5'>
+              {isSaving && <Loader2 className='h-3.5 w-3.5 animate-spin' />} Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1078,9 +900,7 @@ export default function UsersPage() {
             <DialogTitle className='flex items-center gap-2'>
               <UserPlus className='h-4 w-4' /> Create User
             </DialogTitle>
-            <DialogDescription>
-              Add a new user and assign roles.
-            </DialogDescription>
+            <DialogDescription>Add a new user and assign roles.</DialogDescription>
           </DialogHeader>
           <UserForm
             data={newUser}
@@ -1103,23 +923,15 @@ export default function UsersPage() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={isCreating}
-              className='gap-1.5'
-            >
-              {isCreating && <Loader2 className='h-3.5 w-3.5 animate-spin' />}{' '}
-              Create User
+            <Button onClick={handleCreate} disabled={isCreating} className='gap-1.5'>
+              {isCreating && <Loader2 className='h-3.5 w-3.5 animate-spin' />} Create User
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirm */}
-      <AlertDialog
-        open={!!deleteUser}
-        onOpenChange={(o) => !o && setDeleteUser(null)}
-      >
+      <AlertDialog open={!!deleteUser} onOpenChange={(o) => !o && setDeleteUser(null)}>
         <AlertDialogContent className='max-w-sm'>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
@@ -1133,13 +945,8 @@ export default function UsersPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className='bg-destructive text-destructive-foreground gap-1.5'
-            >
-              {isDeleting && <Loader2 className='h-3.5 w-3.5 animate-spin' />}{' '}
-              Delete
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className='bg-destructive text-destructive-foreground gap-1.5'>
+              {isDeleting && <Loader2 className='h-3.5 w-3.5 animate-spin' />} Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

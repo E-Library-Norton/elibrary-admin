@@ -8,7 +8,7 @@ export interface UploadedFileInfo {
   video_url?: string; // present when field = "video"
   audio_url?: string; // present when field = "audio"
   url?: string; // present for generic "file" field
-  key: string; // R2 object key (was public_id with Cloudinary)
+  key: string; // R2 object key (was public_id with cloudflare)
   format?: string;
   resource_type: string;
   originalName: string;

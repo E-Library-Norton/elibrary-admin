@@ -50,7 +50,7 @@ export interface Book {
   Publishers?: BookPublisher[];
 }
 
-// ── Response shapes ────────────────────────────────────────────────────────────
+// ── Response shapes
 
 export interface GetBooksResponse {
   success: boolean;
@@ -69,7 +69,13 @@ export interface BookResponse {
   message?: string;
 }
 
-// ── Payloads ───────────────────────────────────────────────────────────────────
+export interface DeleteBookResponse {
+  success: boolean;
+  data: null;
+  message: string;
+}
+
+// ── Payloads
 
 export interface CreateBookPayload {
   title: string;
@@ -93,7 +99,7 @@ export interface CreateBookPayload {
 
 export interface UpdateBookPayload extends Partial<CreateBookPayload> {}
 
-// ── Query params ───────────────────────────────────────────────────────────────
+// ── Query params
 
 export interface GetBooksParams {
   page?: number;
@@ -113,7 +119,7 @@ export interface GetBooksParams {
   sortOrder?: "ASC" | "DESC";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+//
 
 export const bookApi = api.injectEndpoints({
   overrideExisting: true,
@@ -187,7 +193,7 @@ export const bookApi = api.injectEndpoints({
     }),
 
     // DELETE /api/books/:id
-    deleteBook: builder.mutation<{ success: boolean; message: string }, string>(
+    deleteBook: builder.mutation<DeleteBookResponse, string>(
       {
         query: (id) => ({
           url: `/books/${id}`,

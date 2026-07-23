@@ -33,11 +33,11 @@ import { navItems } from '@/config/nav-config';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useFilteredNavItems } from '@/hooks/use-nav';
 import {
-  IconBell,
   IconChevronRight,
   IconChevronsDown,
-  IconCreditCard,
+  IconLayoutDashboard,
   IconLogout,
+  IconSettings,
   IconUserCircle
 } from '@tabler/icons-react';
 import Link from 'next/link';
@@ -51,19 +51,19 @@ import { Icons } from '../icons';
 import { OrgSwitcher } from '../org-switcher';
 
 export default function AppSidebar() {
-  const pathname      = usePathname();
-  const { isOpen }    = useMediaQuery();
-  const router        = useRouter();
-  const dispatch      = useDispatch();
+  const pathname = usePathname();
+  const { isOpen } = useMediaQuery();
+  const router = useRouter();
+  const dispatch = useDispatch();
   const filteredItems = useFilteredNavItems(navItems);
-  const user          = useSelector(selectUser);
+  const user = useSelector(selectUser);
   const [logout, { isLoading: loggingOut }] = useLogoutMutation();
 
   // Build display name from firstName/lastName or fall back to username
   const displayName = user
     ? (user.firstName && user.lastName
-        ? `${user.firstName} ${user.lastName}`
-        : user.username)
+      ? `${user.firstName} ${user.lastName}`
+      : user.username)
     : '';
 
   const handleLogout = async () => {
@@ -76,10 +76,10 @@ export default function AppSidebar() {
   // Shape expected by UserAvatarProfile
   const avatarUser = user
     ? {
-        imageUrl:       user.avatar ? '/api/auth/avatar' : undefined,
-        fullName:       displayName,
-        emailAddresses: [{ emailAddress: user.email }],
-      }
+      imageUrl: user.avatar ? '/api/auth/avatar' : undefined,
+      fullName: displayName,
+      emailAddresses: [{ emailAddress: user.email }],
+    }
     : null;
 
   React.useEffect(() => {
@@ -187,20 +187,22 @@ export default function AppSidebar() {
 
                 <DropdownMenuGroup>
                   <DropdownMenuItem
+                    onClick={() => router.push('/dashboard/overview')}
+                  >
+                    <IconLayoutDashboard className='mr-2 h-4 w-4' />
+                    Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     onClick={() => router.push('/dashboard/profile')}
                   >
                     <IconUserCircle className='mr-2 h-4 w-4' />
                     Profile
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => router.push('/dashboard/billing')}
+                    onClick={() => router.push('/dashboard/settings')}
                   >
-                    <IconCreditCard className='mr-2 h-4 w-4' />
-                    Billing
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <IconBell className='mr-2 h-4 w-4' />
-                    Notifications
+                    <IconSettings className='mr-2 h-4 w-4' />
+                    Settings
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

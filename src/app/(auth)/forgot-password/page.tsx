@@ -4,15 +4,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Mail, Lock, Eye, EyeOff,
-  ArrowLeft, Loader2, ShieldAlert, CheckCircle2, GraduationCap,
-} from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, ShieldAlert, CheckCircle2, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getPasswordValidationError, PASSWORD_REQUIREMENTS } from '@/lib/password-validation';
 
 type Step = 'email' | 'otp' | 'password' | 'done';
+
+type ApiErrorResponse = {
+  message?: string;
+  error?: {
+    message?: string;
+    details?: Array<{
+      message?: string;
+    }>;
+  };
+};
+
+function getApiErrorMessage(data: ApiErrorResponse, fallback: string) {
+  return data.error?.details?.find((detail) => detail.message)?.message ?? data.error?.message ?? data.message ?? fallback;
+}
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -48,7 +60,10 @@ export default function ForgotPasswordPage() {
     if (step !== 'email') return;
     const value = email.trim();
     setError('');
-    if (!/^\S+@\S+\.\S+$/.test(value)) { setEmailStatus('idle'); return; }
+    if (!/^\S+@\S+\.\S+$/.test(value)) {
+      setEmailStatus('idle');
+      return;
+    }
 
     const controller = new AbortController();
     setEmailStatus('checking');
@@ -66,7 +81,10 @@ export default function ForgotPasswordPage() {
         if (!(err instanceof Error && err.name === 'AbortError')) setEmailStatus('missing');
       }
     }, 500);
-    return () => { clearTimeout(timer); controller.abort(); };
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [email, step]);
 
   // Helper to format seconds into 1h 59m 59s
@@ -87,11 +105,11 @@ export default function ForgotPasswordPage() {
   const strength = (() => {
     if (!password) return 0;
     let s = 0;
-    if (password.length >= 8) s++;
-    if (password.length >= 12) s++;
+    if (password.length >= 8 && password.length <= 20 && !/\s/.test(password)) s++;
+    if (/[a-z]/.test(password)) s++;
     if (/[A-Z]/.test(password)) s++;
-    if (/[0-9]/.test(password)) s++;
-    if (/[^A-Za-z0-9]/.test(password)) s++;
+    if (/\d/.test(password)) s++;
+    if (/[^A-Za-z0-9\s]/.test(password)) s++;
     return s;
   })();
   const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'][strength];
@@ -111,7 +129,10 @@ export default function ForgotPasswordPage() {
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 6) { setOtp(pasted.split('')); otpRefs.current[5]?.focus(); }
+    if (pasted.length === 6) {
+      setOtp(pasted.split(''));
+      otpRefs.current[5]?.focus();
+    }
   };
 
   // Step 1: Send OTP
@@ -125,16 +146,27 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.message || 'Failed to send code.'); return; }
+      const data = (await res.json()) as ApiErrorResponse & {
+        data?: { sessionToken?: string };
+      };
+      if (!res.ok) {
+        setError(getApiErrorMessage(data, 'Failed to send code.'));
+        return;
+      }
       const token = data.data?.sessionToken ?? '';
-      if (!token) { setError('This email is not registered.'); return; }
+      if (!token) {
+        setError('This email is not registered.');
+        return;
+      }
       setSessionToken(token);
       setStep('otp');
       // Set to 60 for a 1-minute cooldown
       setResendCooldown(60);
-    } catch { setError('Network error. Please try again.'); }
-    finally { setLoading(false); }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Resend logic
@@ -149,21 +181,32 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as ApiErrorResponse & {
+        data?: { sessionToken?: string };
+      };
       const token = data.data?.sessionToken ?? '';
-      if (!res.ok || !token) { setError(data.message || 'This email is not registered.'); return; }
+      if (!res.ok || !token) {
+        setError(getApiErrorMessage(data, 'This email is not registered.'));
+        return;
+      }
       setSessionToken(token);
       setResendCooldown(60);
       otpRefs.current[0]?.focus();
-    } catch { setError('Network error. Please try again.'); }
-    finally { setLoading(false); }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Step 2: Verify OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join('');
-    if (code.length < 6) { setError('Enter the full 6-digit code.'); return; }
+    if (code.length < 6) {
+      setError('Enter the full 6-digit code.');
+      return;
+    }
     if (!sessionToken) {
       setError('No code was sent to this email. Please go back and use a registered email address.');
       return;
@@ -176,32 +219,57 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionToken, otp: code }),
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.message || 'Invalid or expired code.'); return; }
+      const data = (await res.json()) as ApiErrorResponse & {
+        data?: { resetToken?: string };
+      };
+      if (!res.ok) {
+        setError(getApiErrorMessage(data, 'Invalid or expired code.'));
+        return;
+      }
       setResetToken(data.data?.resetToken ?? '');
       setStep('password');
-    } catch { setError('Network error. Please try again.'); }
-    finally { setLoading(false); }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Step 3: Reset Password
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirm) { setError('Passwords do not match.'); return; }
-    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    const passwordError = getPasswordValidationError(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+    if (password !== confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resetToken, password, confirmPassword: confirm }),
+        body: JSON.stringify({
+          resetToken,
+          password,
+          confirmPassword: confirm,
+        }),
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.message || 'Failed to reset password.'); return; }
+      const data = (await res.json()) as ApiErrorResponse;
+      if (!res.ok) {
+        setError(getApiErrorMessage(data, 'Failed to reset password.'));
+        return;
+      }
       setStep('done');
-    } catch { setError('Network error. Please try again.'); }
-    finally { setLoading(false); }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const steps = [
@@ -214,7 +282,11 @@ export default function ForgotPasswordPage() {
   return (
     <div
       className='relative min-h-screen flex items-center justify-center overflow-hidden'
-      style={{ backgroundImage: "url('/assets/nu-building.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+      style={{
+        backgroundImage: "url('/assets/nu-building.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
     >
       <div className='absolute inset-0 bg-black/65 backdrop-blur-[2px]' />
       <div className='absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20' />
@@ -238,19 +310,16 @@ export default function ForgotPasswordPage() {
             {steps.map((s, i) => (
               <React.Fragment key={s.key}>
                 <div className='flex items-center gap-1.5'>
-                  <div className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${i < stepIndex ? 'bg-green-400 text-white' :
-                      i === stepIndex ? 'bg-white text-gray-900' :
-                        'bg-white/20 text-white/50'
-                    }`}>
+                  <div
+                    className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
+                      i < stepIndex ? 'bg-green-400 text-white' : i === stepIndex ? 'bg-white text-gray-900' : 'bg-white/20 text-white/50'
+                    }`}
+                  >
                     {i < stepIndex ? '✓' : i + 1}
                   </div>
-                  <span className={`text-xs font-medium hidden sm:block ${i === stepIndex ? 'text-white' : 'text-white/40'
-                    }`}>{s.label}</span>
+                  <span className={`text-xs font-medium hidden sm:block ${i === stepIndex ? 'text-white' : 'text-white/40'}`}>{s.label}</span>
                 </div>
-                {i < steps.length - 1 && (
-                  <div className={`h-0.5 w-10 sm:w-16 rounded-full transition-all ${i < stepIndex ? 'bg-green-400' : 'bg-white/20'
-                    }`} />
-                )}
+                {i < steps.length - 1 && <div className={`h-0.5 w-10 sm:w-16 rounded-full transition-all ${i < stepIndex ? 'bg-green-400' : 'bg-white/20'}`} />}
               </React.Fragment>
             ))}
           </div>
@@ -269,9 +338,7 @@ export default function ForgotPasswordPage() {
             <>
               <div className='mb-6'>
                 <h2 className='text-xl font-semibold text-white'>Forgot Password</h2>
-                <p className='text-white/45 text-sm mt-1'>
-                  Enter your admin email and we&apos;ll send a verification code.
-                </p>
+                <p className='text-white/45 text-sm mt-1'>Enter your admin email and we&apos;ll send a verification code.</p>
               </div>
               <form onSubmit={handleSendCode} className='space-y-5'>
                 <div className='space-y-1.5'>
@@ -279,7 +346,9 @@ export default function ForgotPasswordPage() {
                   <div className='relative'>
                     <Mail className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40' />
                     <Input
-                      required autoFocus type='email'
+                      required
+                      autoFocus
+                      type='email'
                       placeholder='admin@norton.edu.kh'
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -321,8 +390,12 @@ export default function ForgotPasswordPage() {
                   {otp.map((digit, i) => (
                     <input
                       key={i}
-                      ref={(el) => { otpRefs.current[i] = el; }}
-                      type='text' inputMode='numeric' maxLength={1}
+                      ref={(el) => {
+                        otpRefs.current[i] = el;
+                      }}
+                      type='text'
+                      inputMode='numeric'
+                      maxLength={1}
                       value={digit}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}
@@ -343,21 +416,18 @@ export default function ForgotPasswordPage() {
                 <p className='text-sm text-white/40'>
                   Didn&apos;t receive it?{' '}
                   {resendCooldown > 0 ? (
-                    <span className='text-white/30 font-medium'>
-                      Resend in {formatCooldown(resendCooldown)}
-                    </span>
+                    <span className='text-white/30 font-medium'>Resend in {formatCooldown(resendCooldown)}</span>
                   ) : (
-                    <button
-                      onClick={handleResend}
-                      disabled={loading}
-                      className='text-white/70 font-semibold hover:text-white transition-colors'
-                    >
+                    <button onClick={handleResend} disabled={loading} className='text-white/70 font-semibold hover:text-white transition-colors'>
                       Resend code
                     </button>
                   )}
                 </p>
                 <button
-                  onClick={() => { setStep('email'); setError(''); }}
+                  onClick={() => {
+                    setStep('email');
+                    setError('');
+                  }}
                   className='text-xs text-white/30 hover:text-white/60 flex items-center justify-center gap-1.5 mx-auto'
                 >
                   <ArrowLeft className='w-3.5 h-3.5' /> Change email
@@ -379,7 +449,8 @@ export default function ForgotPasswordPage() {
                   <div className='relative'>
                     <Lock className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40' />
                     <Input
-                      required type={showPw ? 'text' : 'password'}
+                      required
+                      type={showPw ? 'text' : 'password'}
                       placeholder='New Password'
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -397,9 +468,12 @@ export default function ForgotPasswordPage() {
                           <div key={i} className={`h-1 flex-1 rounded-full ${i <= strength ? strengthColor : 'bg-white/20'}`} />
                         ))}
                       </div>
-                      <p className='text-xs text-white/40'>Strength: <span className='text-white/70'>{strengthLabel}</span></p>
+                      <p className='text-xs text-white/40'>
+                        Strength: <span className='text-white/70'>{strengthLabel}</span>
+                      </p>
                     </div>
                   )}
+                  <p className='text-xs text-white/45'>{PASSWORD_REQUIREMENTS}</p>
                 </div>
 
                 <div className='space-y-1.5'>
@@ -408,7 +482,8 @@ export default function ForgotPasswordPage() {
                     <Lock className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40' />
                     <Input
                       placeholder='Confirm New Password'
-                      required type={showCpw ? 'text' : 'password'}
+                      required
+                      type={showCpw ? 'text' : 'password'}
                       value={confirm}
                       onChange={(e) => setConfirm(e.target.value)}
                       disabled={loading}
@@ -442,9 +517,7 @@ export default function ForgotPasswordPage() {
           )}
         </div>
 
-        <p className='text-center text-white/25 text-xs mt-6'>
-          © {new Date().getFullYear()} Norton University · E-Library System
-        </p>
+        <p className='text-center text-white/25 text-xs mt-6'>© {new Date().getFullYear()} Norton University · E-Library System</p>
       </div>
     </div>
   );

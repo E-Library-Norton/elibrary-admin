@@ -12,7 +12,7 @@ export interface ChangePasswordResponse { success: boolean; message: string; }
 export interface UpdateProfilePayload { firstName?: string; lastName?: string; email?: string; studentId?: string; }
 export interface UpdateProfileResponse { success: boolean; message: string; data: AuthUser; }
 
-// ── 2FA types ─────────────────────────────────────────────────────────────────
+// ── 2FA types
 export interface TwoFASetupResponse   { success: boolean; message: string; data: { qrCode: string; secret: string; otpauthUrl: string } }
 export interface TwoFAVerifyPayload   { token?: string; recoveryCode?: string; tempToken?: string }
 export interface TwoFAVerifyResponse  { success: boolean; message: string; data: { twoFactorEnabled?: boolean; recoveryCodes?: string[]; user?: AuthUser; accessToken?: string; refreshToken?: string } }
@@ -24,8 +24,6 @@ export const authApi = api.injectEndpoints({overrideExisting: true,
   endpoints: (builder) => ({
 
     // POST /api/auth/login
-    // NOTE: credentials are dispatched by useAuth.login AFTER the role check.
-    // Do NOT auto-dispatch setCredentials here.
     login: builder.mutation<LoginResponse, LoginPayload>({
       query: (credentials) => ({ url: '/auth/login', method: 'POST', body: credentials }),
     }),
@@ -43,7 +41,7 @@ export const authApi = api.injectEndpoints({overrideExisting: true,
       },
     }),
 
-    // POST /api/auth/avatar   — upload image file → Cloudinary → update Redux
+    // POST /api/auth/avatar   — upload image file → Cloudflare → update Redux
     uploadAvatar: builder.mutation<AvatarResponse, FormData>({
       query: (formData) => ({
         url: '/auth/avatar',
@@ -109,7 +107,7 @@ export const authApi = api.injectEndpoints({overrideExisting: true,
       },
     }),
 
-    // ── Two-Factor Authentication endpoints ─────────────────────────────────
+    // ── Two-Factor Authentication endpoints
     // POST /api/auth/2fa/setup
     twoFASetup: builder.mutation<TwoFASetupResponse, void>({
       query: () => ({ url: '/auth/2fa/setup', method: 'POST' }),

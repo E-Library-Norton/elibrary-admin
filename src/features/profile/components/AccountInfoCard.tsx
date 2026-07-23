@@ -8,14 +8,20 @@ import { selectUser } from '@/store/authSlice';
 import { setCredentials } from '@/store/authSlice';
 import { useUpdateProfileMutation, useGetProfileQuery } from '@/services/authApi';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Badge }     from '@/components/ui/badge';
-import { Button }    from '@/components/ui/button';
-import { Input }     from '@/components/ui/input';
-import { Label }     from '@/components/ui/label';
-import { toast }     from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import { UserCircle, Mail, GraduationCap, ShieldCheck, Pencil, Check, X, Loader2, Settings, BadgeCheck } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { selectAccessToken } from '@/store/authSlice';
+import { getApiErrorMessage } from '@/lib/api-error';
+
+type ProfileFieldErrors = {
+  email?: string;
+  studentId?: string;
+};
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
   return (
@@ -32,19 +38,20 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
 }
 
 export default function AccountInfoCard() {
-  const user        = useSelector(selectUser);
+  const user = useSelector(selectUser);
   const accessToken = useSelector(selectAccessToken);
-  const dispatch    = useDispatch();
+  const dispatch = useDispatch();
   const searchParams = useSearchParams();
 
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
   const { data: profileData, refetch: refetchProfile } = useGetProfileQuery();
 
-  const [editing, setEditing]     = useState(false);
+  const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName]   = useState('');
-  const [email, setEmail]         = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [studentId, setStudentId] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({});
 
   // Handle ?email_verified= redirect from backend
   useEffect(() => {
@@ -67,7 +74,7 @@ export default function AccountInfoCard() {
       toast.error('Invalid verification link.');
       window.history.replaceState({}, '', window.location.pathname);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!user) return null;
@@ -81,13 +88,38 @@ export default function AccountInfoCard() {
     setLastName(user.lastName ?? '');
     setEmail(user.email ?? '');
     setStudentId(user.studentId ?? '');
+    setFieldErrors({});
     setEditing(true);
   };
 
   const saveEdit = async () => {
-    const result = await updateProfile({ firstName, lastName, email, studentId });
-    if ('error' in result) { toast.error('Failed to update profile. Please try again.'); }
-    else                   { toast.success('Profile updated successfully!'); setEditing(false); }
+    setFieldErrors({});
+
+    try {
+      const response = await updateProfile({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        studentId: studentId.trim(),
+      }).unwrap();
+
+      toast.success(response.message || 'Profile updated successfully!');
+      setEditing(false);
+    } catch (error: unknown) {
+      const message = getApiErrorMessage(
+        error,
+        'Failed to update profile. Please try again.'
+      );
+      const normalizedMessage = message.toLowerCase();
+
+      if (normalizedMessage.includes('email')) {
+        setFieldErrors({ email: message });
+      } else if (normalizedMessage.includes('student id')) {
+        setFieldErrors({ studentId: message });
+      }
+
+      toast.error(message);
+    }
   };
 
 
@@ -120,19 +152,44 @@ export default function AccountInfoCard() {
             </div>
             <div className='grid grid-cols-2 gap-4'>
               <div className='space-y-1.5'>
-                <Label htmlFor='email'>Email</Label>
-                <Input id='email' type='email' value={email} onChange={(e) => setEmail(e.target.value)} placeholder='Email address' />
+                <Label htmlFor='email' className={fieldErrors.email ? 'text-destructive' : undefined}>Email</Label>
+                <Input
+                  id='email'
+                  type='email'
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setFieldErrors((current) => ({ ...current, email: undefined }));
+                  }}
+                  placeholder='Email address'
+                  aria-invalid={!!fieldErrors.email}
+                />
+                {fieldErrors.email && (
+                  <p className='text-destructive text-xs font-medium'>{fieldErrors.email}</p>
+                )}
               </div>
               <div className='space-y-1.5'>
-                <Label htmlFor='studentId'>Student ID</Label>
-                <Input id='studentId' value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder='e.g. B20231579' />
+                <Label htmlFor='studentId' className={fieldErrors.studentId ? 'text-destructive' : undefined}>Student ID</Label>
+                <Input
+                  id='studentId'
+                  value={studentId}
+                  onChange={(e) => {
+                    setStudentId(e.target.value);
+                    setFieldErrors((current) => ({ ...current, studentId: undefined }));
+                  }}
+                  placeholder='e.g. B20231579'
+                  aria-invalid={!!fieldErrors.studentId}
+                />
+                {fieldErrors.studentId && (
+                  <p className='text-destructive text-xs font-medium'>{fieldErrors.studentId}</p>
+                )}
               </div>
             </div>
             <p className='text-xs text-muted-foreground'>Username cannot be changed from this page.</p>
           </div>
         ) : (
           <div className='divide-y divide-border'>
-            <InfoRow icon={UserCircle}    label='Full Name'  value={fullName} />
+            <InfoRow icon={UserCircle} label='Full Name' value={fullName} />
             <InfoRow
               icon={Mail}
               label='Email'
@@ -172,7 +229,16 @@ export default function AccountInfoCard() {
           <>
             <p className='text-xs text-muted-foreground'>Save your changes when ready.</p>
             <div className='flex gap-2'>
-              <Button variant='ghost' size='sm' className='gap-1.5' onClick={() => setEditing(false)} disabled={isLoading}>
+              <Button
+                variant='ghost'
+                size='sm'
+                className='gap-1.5'
+                onClick={() => {
+                  setFieldErrors({});
+                  setEditing(false);
+                }}
+                disabled={isLoading}
+              >
                 <X className='h-3.5 w-3.5' /> Cancel
               </Button>
               <Button size='sm' className='gap-1.5' onClick={saveEdit} disabled={isLoading}>

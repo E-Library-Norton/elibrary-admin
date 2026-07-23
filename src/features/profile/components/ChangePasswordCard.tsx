@@ -1,22 +1,41 @@
 'use client';
 
-
 import { useState } from 'react';
 import { useChangePasswordMutation } from '@/services/authApi';
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
-} from '@/components/ui/card';
-import { Button }   from '@/components/ui/button';
-import { Input }    from '@/components/ui/input';
-import { Label }    from '@/components/ui/label';
-import { toast }    from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import { KeyRound, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
+import { getPasswordValidationError, PASSWORD_REQUIREMENTS } from '@/lib/password-validation';
+
+type MutationError = {
+  data?: {
+    message?: string;
+    error?: {
+      message?: string;
+      details?: Array<{
+        message?: string;
+      }>;
+    };
+  };
+};
 
 function PasswordInput({
-  id, label, value, onChange, placeholder, hint,
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  hint,
 }: {
-  id: string; label: string; value: string;
-  onChange: (v: string) => void; placeholder: string; hint?: string;
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  hint?: string;
 }) {
   const [show, setShow] = useState(false);
   return (
@@ -50,7 +69,7 @@ export default function ChangePasswordCard() {
   const [changePassword, { isLoading }] = useChangePasswordMutation();
 
   const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword]         = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,8 +79,9 @@ export default function ChangePasswordCard() {
       toast.error('All fields are required.');
       return;
     }
-    if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters.');
+    const passwordError = getPasswordValidationError(newPassword);
+    if (passwordError) {
+      toast.error(passwordError);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -70,15 +90,22 @@ export default function ChangePasswordCard() {
     }
 
     try {
-      await changePassword({ currentPassword, newPassword, confirmPassword }).unwrap();
+      await changePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      }).unwrap();
       toast.success('Password changed successfully!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: any) {
-      const msg = err?.data?.error?.message 
-        || err?.data?.message 
-        || 'Failed to change password. Please try again.';
+    } catch (error: unknown) {
+      const err = error as MutationError;
+      const msg =
+        err.data?.error?.details?.find((detail) => detail.message)?.message ||
+        err.data?.error?.message ||
+        err.data?.message ||
+        'Failed to change password. Please try again.';
       toast.error(msg);
     }
   };
@@ -118,7 +145,7 @@ export default function ChangePasswordCard() {
             value={newPassword}
             onChange={setNewPassword}
             placeholder='Enter new password'
-            hint='Password must be at least 8 characters long.'
+            hint={PASSWORD_REQUIREMENTS}
           />
           <PasswordInput
             id='confirmPassword'
@@ -129,9 +156,13 @@ export default function ChangePasswordCard() {
           />
 
           <Button type='submit' className='w-full sm:w-auto gap-2' disabled={isLoading}>
-            {isLoading
-              ? <><Loader2 className='h-4 w-4 animate-spin' /> Updating…</>
-              : 'Update Password'}
+            {isLoading ? (
+              <>
+                <Loader2 className='h-4 w-4 animate-spin' /> Updating…
+              </>
+            ) : (
+              'Update Password'
+            )}
           </Button>
         </form>
       </CardContent>

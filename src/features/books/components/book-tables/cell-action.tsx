@@ -12,29 +12,51 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useRole }      from '@/hooks/use-role';
 import { IconDotsVertical, IconEdit, IconTrash } from '@tabler/icons-react';
-import { useRouter }    from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState }     from 'react';
 import { useDeleteBookMutation, type Book } from '@/services/bookApi';
+import { toast } from 'sonner';
 
 interface CellActionProps {
   data: Book;
 }
 
+type DeleteBookError = {
+  data?: {
+    message?: string;
+    error?: {
+      message?: string;
+    };
+  };
+};
+
 export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const [open, setOpen]               = useState(false);
   const router                        = useRouter();
+  const pathname                      = usePathname();
+  const searchParams                  = useSearchParams();
   const { can }                       = useRole();
   const [deleteBook, { isLoading }]   = useDeleteBookMutation();
 
   const canEdit   = can('books.update');
   const canDelete = can('books.delete');
+  const queryString = searchParams.toString();
+  const returnTo = `${pathname}${queryString ? `?${queryString}` : ''}`;
+  const editUrl = `/dashboard/books/${data.id}?returnTo=${encodeURIComponent(returnTo)}`;
 
   const onConfirm = async () => {
     try {
-      await deleteBook(data.id).unwrap();
+      const response = await deleteBook(data.id).unwrap();
       setOpen(false);
-    } catch (err) {
-      console.error('Failed to delete book:', err);
+      toast.success(response?.message || 'Book deleted successfully');
+      router.refresh();
+    } catch (error: unknown) {
+      const err = error as DeleteBookError;
+      const message =
+        err.data?.error?.message ||
+        err.data?.message ||
+        'Failed to delete book. Please try again.';
+      toast.error(message);
     }
   };
 
@@ -61,7 +83,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           {/* Edit — requires books.update permission */}
           {canEdit && (
             <DropdownMenuItem
-              onClick={() => router.push(`/dashboard/books/${data.id}`)}
+              onClick={() => router.push(editUrl)}
             >
               <IconEdit className='mr-2 h-4 w-4' /> Edit
             </DropdownMenuItem>

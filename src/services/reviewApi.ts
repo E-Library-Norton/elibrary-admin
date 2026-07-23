@@ -137,23 +137,6 @@ export const reviewApi = api.injectEndpoints({
       ],
     }),
 
-    // PUT /api/reviews/:id  (admin edits rating/comment)
-    updateReview: builder.mutation<
-      { success: boolean; data: Review; message: string },
-      { id: string; rating?: number; comment?: string }
-    >({
-      query: ({ id, ...body }) => ({
-        url:    `/reviews/${id}`,
-        method: 'PUT',
-        body,
-      }),
-      invalidatesTags: (_r, _e, { id }) => [
-        { type: 'Review', id },
-        { type: 'Review', id: 'LIST' },
-        { type: 'Review', id: 'STATS' },
-      ],
-    }),
-
     // POST /api/books/:bookId/reviews  (admin creates a review)
     createReview: builder.mutation<
       { success: boolean; data: Review; message: string },
@@ -175,6 +158,5 @@ export const {
   useGetReviewStatsQuery,
   useGetBookReviewsQuery,
   useDeleteReviewMutation,
-  useUpdateReviewMutation,
   useCreateReviewMutation,
 } = reviewApi;
