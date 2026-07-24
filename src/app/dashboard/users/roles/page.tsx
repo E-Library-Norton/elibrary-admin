@@ -41,9 +41,13 @@ import {
 } from '@/services/roleApi';
 import { useGetPermissionsQuery } from '@/services/permissionApi';
 import { useRole } from '@/hooks/use-role';
+import { getApiErrorMessage } from '@/lib/api-error';
+import { toast } from 'sonner';
 
 // ── Constants 
 const PAGE_SIZE = 10;
+const isProtectedRole = (role: Pick<Role, 'name'>) =>
+  role.name.trim().toLowerCase() === 'admin';
 
 // ── Skeleton loader
 function RoleTableSkeleton() {
@@ -97,10 +101,10 @@ function RoleTableSkeleton() {
 
 // ── Helpers 
 const permColor = (name: string): string => {
-  if (name.startsWith('users'))       return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
-  if (name.startsWith('roles'))       return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+  if (name.startsWith('users')) return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+  if (name.startsWith('roles')) return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
   if (name.startsWith('permissions')) return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
-  if (name.startsWith('books'))       return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+  if (name.startsWith('books')) return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
   return 'bg-muted text-muted-foreground';
 };
 
@@ -209,12 +213,14 @@ function RoleForm({
   permSearch,
   onPermSearch,
   onChange,
+  lockName = false,
 }: {
   data: Omit<Role, 'id'>;
   allPerms: Permission[];
   permSearch: string;
   onPermSearch: (v: string) => void;
   onChange: (field: string, value: string | Permission[]) => void;
+  lockName?: boolean;
 }) {
   return (
     <div className='space-y-4 py-2'>
@@ -225,7 +231,13 @@ function RoleForm({
           value={data.name}
           onChange={(e) => onChange('name', e.target.value)}
           placeholder='e.g. librarian'
+          disabled={lockName}
         />
+        {lockName && (
+          <p className='text-xs text-muted-foreground'>
+            The Admin system role name cannot be changed.
+          </p>
+        )}
       </div>
       <div className='space-y-1'>
         <Label htmlFor='role-desc'>Description</Label>
@@ -248,31 +260,30 @@ function RoleForm({
   );
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
 export default function RolesPage() {
-  const [search, setSearch]         = useState('');
-  const [page, setPage]             = useState(1);
-  const [editRole, setEditRole]     = useState<Role | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [editRole, setEditRole] = useState<Role | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteRole, setDeleteRole] = useState<Role | null>(null);
-  const [newRole, setNewRole]       = useState(emptyRole());
+  const [newRole, setNewRole] = useState(emptyRole());
   const [permSearch, setPermSearch] = useState('');
 
   const { can } = useRole();
 
-  // ── RTK Query ─────────────────────────────────────────────────────────────
+  // ── RTK Query
   const { data: rolesData, isLoading, isFetching, isError } = useGetRolesQuery();
   const { data: permsData } = useGetPermissionsQuery();
 
-  const [createRole,    { isLoading: isCreating }] = useCreateRoleMutation();
-  const [updateRole,    { isLoading: isUpdating }] = useUpdateRoleMutation();
+  const [createRole, { isLoading: isCreating }] = useCreateRoleMutation();
+  const [updateRole, { isLoading: isUpdating }] = useUpdateRoleMutation();
   const [deleteRoleMut, { isLoading: isDeleting }] = useDeleteRoleMutation();
-  const [syncPermissions]                          = useSyncRolePermissionsMutation();
+  const [syncPermissions] = useSyncRolePermissionsMutation();
 
   const allRoles = rolesData?.data ?? [];
   const allPerms = permsData?.data ?? [];
 
-  // ── Search + Pagination ───────────────────────────────────────────────────
+  // ── Search + Pagination
   const filtered = useMemo(
     () =>
       allRoles.filter(
@@ -284,9 +295,9 @@ export default function RolesPage() {
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageData   = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // ── CRUD handlers ─────────────────────────────────────────────────────────
+  // ── CRUD handlers
   const handleSaveEdit = async () => {
     if (!editRole) return;
     try {
@@ -318,10 +329,21 @@ export default function RolesPage() {
 
   const handleDelete = async () => {
     if (!deleteRole) return;
-    try {
-      await deleteRoleMut(deleteRole.id).unwrap();
+    if (isProtectedRole(deleteRole)) {
+      toast.error('The Admin role cannot be deleted');
       setDeleteRole(null);
-    } catch (err) { console.error('Delete role failed:', err); }
+      return;
+    }
+
+    try {
+      const response = await deleteRoleMut(deleteRole.id).unwrap();
+      toast.success(response.message || 'Role deleted successfully');
+      setDeleteRole(null);
+    } catch (error: unknown) {
+      toast.error(
+        getApiErrorMessage(error, 'Failed to delete role. Please try again.')
+      );
+    }
   };
 
   const openEdit = (role: Role) => {
@@ -329,7 +351,7 @@ export default function RolesPage() {
     setEditRole({ ...role, Permissions: [...role.Permissions] });
   };
 
-  // ── Loading / Error ───────────────────────────────────────────────────────
+  // ── Loading / Error
   if (isLoading) return (
     <PageContainer pageTitle='Roles' pageDescription='Manage roles and their associated permissions.' infoContent={teamInfoContent}>
       <div className='space-y-4'><RoleTableSkeleton /></div>
@@ -345,7 +367,7 @@ export default function RolesPage() {
     </PageContainer>
   );
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render
   return (
     <PageContainer
       pageTitle='Roles'
@@ -400,14 +422,14 @@ export default function RolesPage() {
                     </TableCell>
                   </TableRow>
                 ) : isFetching ? (
-                    Array.from({ length: pageData.length || 4 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><div className='flex items-center gap-2'><Skeleton className='h-7 w-7 rounded-md' /><Skeleton className='h-4 w-20' /></div></TableCell>
-                        <TableCell><Skeleton className='h-3 w-40' /></TableCell>
-                        <TableCell><div className='flex gap-1'><Skeleton className='h-5 w-16 rounded' /><Skeleton className='h-5 w-20 rounded' /></div></TableCell>
-                        <TableCell><Skeleton className='h-7 w-7 rounded-md ml-auto' /></TableCell>
-                      </TableRow>
-                    ))
+                  Array.from({ length: pageData.length || 4 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><div className='flex items-center gap-2'><Skeleton className='h-7 w-7 rounded-md' /><Skeleton className='h-4 w-20' /></div></TableCell>
+                      <TableCell><Skeleton className='h-3 w-40' /></TableCell>
+                      <TableCell><div className='flex gap-1'><Skeleton className='h-5 w-16 rounded' /><Skeleton className='h-5 w-20 rounded' /></div></TableCell>
+                      <TableCell><Skeleton className='h-7 w-7 rounded-md ml-auto' /></TableCell>
+                    </TableRow>
+                  ))
                 ) : pageData.map((role) => (
                   <TableRow key={role.id}>
                     {/* Role name */}
@@ -446,7 +468,7 @@ export default function RolesPage() {
 
                     {/* Actions */}
                     <TableCell className='text-right'>
-                      {(can('roles.update') || can('roles.delete')) && (
+                      {(can('roles.update') || (can('roles.delete') && !isProtectedRole(role))) && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant='ghost' size='icon' className='h-8 w-8'>
@@ -459,8 +481,8 @@ export default function RolesPage() {
                                 <Pencil className='w-4 h-4 mr-2' /> Edit
                               </DropdownMenuItem>
                             )}
-                            {can('roles.update') && can('roles.delete') && <DropdownMenuSeparator />}
-                            {can('roles.delete') && (
+                            {can('roles.update') && can('roles.delete') && !isProtectedRole(role) && <DropdownMenuSeparator />}
+                            {can('roles.delete') && !isProtectedRole(role) && (
                               <DropdownMenuItem
                                 className='text-destructive focus:text-destructive'
                                 onClick={() => setDeleteRole(role)}
@@ -515,7 +537,7 @@ export default function RolesPage() {
         </Card>
       </div>
 
-      {/* ── Edit Dialog ───────────────────────────────────────────────────── */}
+      {/* ── Edit Dialog  */}
       <Dialog open={!!editRole} onOpenChange={(open) => { if (!open) { setEditRole(null); setPermSearch(''); } }}>
         <DialogContent className='sm:max-w-[520px] max-h-[90vh] overflow-y-auto'>
           <DialogHeader>
@@ -531,6 +553,7 @@ export default function RolesPage() {
               permSearch={permSearch}
               onPermSearch={setPermSearch}
               onChange={(f, v) => setEditRole((prev) => prev ? { ...prev, [f]: v } : prev)}
+              lockName={isProtectedRole(editRole)}
             />
           )}
           <DialogFooter>
@@ -544,7 +567,7 @@ export default function RolesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Create Dialog ─────────────────────────────────────────────────── */}
+      {/* ── Create Dialog  */}
       <Dialog
         open={createOpen}
         onOpenChange={(open) => { setCreateOpen(open); if (!open) { setNewRole(emptyRole()); setPermSearch(''); } }}
@@ -577,7 +600,7 @@ export default function RolesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete Confirm ────────────────────────────────────────────────── */}
+      {/* ── Delete Confirm  */}
       <AlertDialog open={!!deleteRole} onOpenChange={(open) => !open && setDeleteRole(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

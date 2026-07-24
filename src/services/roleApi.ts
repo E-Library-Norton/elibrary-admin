@@ -25,6 +25,12 @@ export interface RolesResponse {
   data: Role[];
 }
 
+export interface DeleteRoleResponse {
+  success: boolean;
+  data: null;
+  message: string;
+}
+
 export interface CreateRolePayload {
   name: string;
   description?: string;
@@ -36,7 +42,8 @@ export interface UpdateRolePayload {
   description?: string;
 }
 
-export const roleApi = api.injectEndpoints({overrideExisting: true,
+export const roleApi = api.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
 
     // GET /api/roles
@@ -45,9 +52,9 @@ export const roleApi = api.injectEndpoints({overrideExisting: true,
       providesTags: (result) =>
         result?.data
           ? [
-              ...result.data.map(({ id }) => ({ type: 'Role' as const, id })),
-              { type: 'Role', id: 'LIST' },
-            ]
+            ...result.data.map(({ id }) => ({ type: 'Role' as const, id })),
+            { type: 'Role', id: 'LIST' },
+          ]
           : [{ type: 'Role', id: 'LIST' }],
     }),
 
@@ -60,9 +67,9 @@ export const roleApi = api.injectEndpoints({overrideExisting: true,
     // POST /api/roles
     createRole: builder.mutation<RoleResponse, CreateRolePayload>({
       query: (data) => ({
-        url:    '/roles',
+        url: '/roles',
         method: 'POST',
-        body:   data,
+        body: data,
       }),
       invalidatesTags: [{ type: 'Role', id: 'LIST' }],
     }),
@@ -70,9 +77,9 @@ export const roleApi = api.injectEndpoints({overrideExisting: true,
     // PUT /api/roles/:id
     updateRole: builder.mutation<RoleResponse, { id: string; data: UpdateRolePayload }>({
       query: ({ id, data }) => ({
-        url:    `/roles/${id}`,
+        url: `/roles/${id}`,
         method: 'PUT',
-        body:   data,
+        body: data,
       }),
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Role', id },
@@ -81,9 +88,9 @@ export const roleApi = api.injectEndpoints({overrideExisting: true,
     }),
 
     // DELETE /api/roles/:id
-    deleteRole: builder.mutation<{ success: boolean }, string>({
+    deleteRole: builder.mutation<DeleteRoleResponse, string>({
       query: (id) => ({
-        url:    `/roles/${id}`,
+        url: `/roles/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: (_result, _error, id) => [
@@ -95,9 +102,9 @@ export const roleApi = api.injectEndpoints({overrideExisting: true,
     // PUT /api/roles/:id/permissions
     syncRolePermissions: builder.mutation<{ success: boolean }, { id: string; permissionIds: string[] }>({
       query: ({ id, permissionIds }) => ({
-        url:    `/roles/${id}/permissions`,
+        url: `/roles/${id}/permissions`,
         method: 'PUT',
-        body:   { permissionIds },
+        body: { permissionIds },
       }),
       invalidatesTags: (_result, _error, { id }) => [{ type: 'Role', id }],
     }),
@@ -105,9 +112,9 @@ export const roleApi = api.injectEndpoints({overrideExisting: true,
     // POST /api/roles/:id/permissions — assign single permission
     assignPermissionToRole: builder.mutation<{ success: boolean }, { roleId: string; permissionId: string }>({
       query: ({ roleId, permissionId }) => ({
-        url:    `/roles/${roleId}/permissions`,
+        url: `/roles/${roleId}/permissions`,
         method: 'POST',
-        body:   { permission_id: permissionId },
+        body: { permission_id: permissionId },
       }),
       invalidatesTags: (_result, _error, { roleId }) => [{ type: 'Role', id: roleId }],
     }),
@@ -115,7 +122,7 @@ export const roleApi = api.injectEndpoints({overrideExisting: true,
     // DELETE /api/roles/:id/permissions/:permissionId
     removePermissionFromRole: builder.mutation<{ success: boolean }, { roleId: string; permissionId: string }>({
       query: ({ roleId, permissionId }) => ({
-        url:    `/roles/${roleId}/permissions/${permissionId}`,
+        url: `/roles/${roleId}/permissions/${permissionId}`,
         method: 'DELETE',
       }),
       invalidatesTags: (_result, _error, { roleId }) => [{ type: 'Role', id: roleId }],
