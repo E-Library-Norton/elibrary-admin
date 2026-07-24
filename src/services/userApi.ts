@@ -11,9 +11,9 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  studentId: string;
-  firstName: string;
-  lastName: string;
+  studentId: string | null;
+  firstName: string | null;
+  lastName: string | null;
   isActive: boolean;
   avatar?: string | null;
   Roles: Role[];
@@ -51,9 +51,9 @@ export interface CreateUserPayload {
 export interface UpdateUserPayload {
   username?: string;
   email?: string;
-  studentId?: string;
-  firstName?: string;
-  lastName?: string;
+  studentId?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   isActive?: boolean;
   roleIds?: string[];
 }

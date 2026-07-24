@@ -38,6 +38,7 @@ import { useGetRolesQuery } from '@/services/roleApi';
 import { useRole } from '@/hooks/use-role';
 import { toast } from 'sonner';
 import { getPasswordValidationError, PASSWORD_REQUIREMENTS } from '@/lib/password-validation';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // ── Skeleton loader for the table
 function UserTableSkeleton() {
@@ -120,6 +121,15 @@ const emptyUser = () => ({
   Roles: [] as Role[],
 });
 
+type EditableUser = Omit<
+  User,
+  'studentId' | 'firstName' | 'lastName'
+> & {
+  studentId: string;
+  firstName: string;
+  lastName: string;
+};
+
 const pageNumbers = (cur: number, total: number): (number | '…')[] => {
   const out: (number | '…')[] = [];
   for (let i = 1; i <= total; i++) {
@@ -187,6 +197,16 @@ interface FormErrors {
   studentId?: string;
 }
 
+function getConflictField(message: string): keyof FormErrors | null {
+  const normalizedMessage = message.toLowerCase();
+
+  if (normalizedMessage.includes('username')) return 'username';
+  if (normalizedMessage.includes('email')) return 'email';
+  if (normalizedMessage.includes('student id')) return 'studentId';
+
+  return null;
+}
+
 // ── User Form ────
 function UserForm({
   data,
@@ -197,7 +217,7 @@ function UserForm({
   errors,
   onChange,
 }: {
-  data: Omit<User, 'id'> & { password?: string };
+  data: Omit<EditableUser, 'id'> & { password?: string };
   allRoles: Role[];
   showPassword?: boolean;
   userId?: string;
@@ -323,7 +343,7 @@ function UserForm({
 export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [editUser, setEditUser] = useState<User | null>(null);
+  const [editUser, setEditUser] = useState<EditableUser | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [newUser, setNewUser] = useState(emptyUser());
@@ -352,7 +372,13 @@ export default function UsersPage() {
 
   // ── Open edit dialog
   const openEdit = (u: User) => {
-    setEditUser({ ...u, Roles: [...u.Roles] });
+    setEditUser({
+      ...u,
+      studentId: u.studentId ?? '',
+      firstName: u.firstName ?? '',
+      lastName: u.lastName ?? '',
+      Roles: [...u.Roles],
+    });
     setPendingAvatarFile(null);
     setErrors({});
   };
@@ -404,11 +430,11 @@ export default function UsersPage() {
       await updateUser({
         id: editUser.id,
         data: {
-          username: editUser.username,
-          email: editUser.email,
-          studentId: editUser.studentId,
-          firstName: editUser.firstName,
-          lastName: editUser.lastName,
+          username,
+          email,
+          studentId: editUser.studentId.trim(),
+          firstName: editUser.firstName.trim(),
+          lastName: editUser.lastName.trim(),
           isActive: editUser.isActive,
           roleIds: editUser.Roles.map((r) => r.id),
         },
@@ -417,19 +443,17 @@ export default function UsersPage() {
       await refetch();
       toast.success('User updated successfully');
       setEditUser(null);
-    } catch (err: any) {
-      console.error('Save edit failed:', err);
-      const errMsg = err?.data?.error?.message || err?.data?.message || 'Failed to update user';
-      toast.error(errMsg);
+    } catch (error: unknown) {
+      const message = getApiErrorMessage(
+        error,
+        'Failed to update user. Please try again.'
+      );
+      const conflictField = getConflictField(message);
 
-      // Map backend conflict error to form field errors
-      if (errMsg.toLowerCase().includes('username')) {
-        setErrors((prev) => ({ ...prev, username: errMsg }));
-      } else if (errMsg.toLowerCase().includes('email')) {
-        setErrors((prev) => ({ ...prev, email: errMsg }));
-      } else if (errMsg.toLowerCase().includes('student id')) {
-        setErrors((prev) => ({ ...prev, studentId: errMsg }));
+      if (conflictField) {
+        setErrors((current) => ({ ...current, [conflictField]: message }));
       }
+      toast.error(message);
     } finally {
       setIsSaving(false);
       setPendingAvatarFile(null);
@@ -506,19 +530,17 @@ export default function UsersPage() {
       toast.success('User created successfully');
       setCreateOpen(false);
       setNewUser(emptyUser());
-    } catch (err: any) {
-      console.error('Failed to create user:', err);
-      const errMsg = err?.data?.error?.message || err?.data?.message || 'Failed to create user';
-      toast.error(errMsg);
+    } catch (error: unknown) {
+      const message = getApiErrorMessage(
+        error,
+        'Failed to create user. Please try again.'
+      );
+      const conflictField = getConflictField(message);
 
-      // Map backend conflict error to form field errors
-      if (errMsg.toLowerCase().includes('username')) {
-        setErrors((prev) => ({ ...prev, username: errMsg }));
-      } else if (errMsg.toLowerCase().includes('email')) {
-        setErrors((prev) => ({ ...prev, email: errMsg }));
-      } else if (errMsg.toLowerCase().includes('student id')) {
-        setErrors((prev) => ({ ...prev, studentId: errMsg }));
+      if (conflictField) {
+        setErrors((current) => ({ ...current, [conflictField]: message }));
       }
+      toast.error(message);
     }
   };
 
