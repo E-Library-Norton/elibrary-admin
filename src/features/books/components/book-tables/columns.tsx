@@ -75,8 +75,8 @@ export function createColumns(categoryOptions: CategoryOption[]): ColumnDef<Book
     },
     enableColumnFilter: true,
     meta: {
-      label:   'categories',
-      variant: 'multiSelect',
+      label:   'Category',
+      variant: 'select',
       options: categoryOptions,
     },
   },
@@ -118,6 +118,17 @@ export function createColumns(categoryOptions: CategoryOption[]): ColumnDef<Book
     header:      'YEAR',
     cell: ({ getValue }) => (
       <span className='text-sm'>{(getValue() as number | null) ?? '—'}</span>
+    ),
+  },
+
+  // ── Downloads
+  {
+    accessorKey: 'downloads',
+    header:      'DOWNLOADS',
+    cell: ({ getValue }) => (
+      <span className='tabular-nums text-sm'>
+        {Number(getValue() ?? 0).toLocaleString()}
+      </span>
     ),
   },
 

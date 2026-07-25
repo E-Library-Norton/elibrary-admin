@@ -87,6 +87,14 @@ export const navItems: NavItem[] = [
     ],
   },
   {
+    title: 'Downloads',
+    url: '/dashboard/downloads',
+    icon: 'downloads',
+    isActive: false,
+    shortcut: ['d', 'l'],
+    items: []
+  },
+  {
     title: 'Feedback',
     url: '/dashboard/feedback',
     icon: 'feedback',

@@ -120,6 +120,6 @@ export const api = createApi({
   refetchOnFocus: false,        // don't spam API on tab switch
   refetchOnReconnect: true,     // do refetch after network recovery
   tagTypes: ['User', 'Role', 'Permission', 'Category', 'Department', 'MaterialType', 'Publisher', 'Author', 'Editor',
-    'Book', 'Review', 'Feedback'],
+    'Book', 'Download', 'Review', 'Feedback'],
   endpoints: () => ({})
 });

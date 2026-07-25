@@ -30,7 +30,11 @@ export function BookTable({ data, totalItems, categoryOptions }: BookTableProps)
 
   return (
     <DataTable table={table}>
-      <DataTableToolbar table={table} />
+      <DataTableToolbar table={table}>
+        <span className='text-black whitespace-nowrap text-lg  tabular-nums'>
+          {totalItems.toLocaleString()} {totalItems === 1 ? 'book' : 'books'}
+        </span>
+      </DataTableToolbar>
     </DataTable>
   );
 }

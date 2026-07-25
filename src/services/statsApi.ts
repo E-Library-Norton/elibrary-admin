@@ -112,7 +112,11 @@ const statsApi = api.injectEndpoints({
         const days = params?.days ?? 7;
         return `/stats/overview?days=${days}`;
       },
-      providesTags: ['Book'],
+      providesTags: [
+        { type: 'Book', id: 'LIST' },
+        { type: 'User', id: 'LIST' },
+        { type: 'Category', id: 'LIST' },
+      ],
     }),
 
     // GET /api/stats/popular?limit=10

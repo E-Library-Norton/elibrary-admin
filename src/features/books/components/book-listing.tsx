@@ -42,12 +42,16 @@ export default async function BookListingPage() {
   const search = searchParamsCache.get('name');
   const pageLimit = searchParamsCache.get('perPage');
   const categories = searchParamsCache.get('category');
+  const sortBy = searchParamsCache.get('sortBy');
+  const sortOrder = searchParamsCache.get('sortOrder');
 
   const filters = {
     page,
     limit: pageLimit,
     ...(search && { search }),
-    ...(categories && { categoryName: categories })
+    ...(categories && { categoryName: categories }),
+    ...(sortBy && { sortBy }),
+    ...(sortOrder && { sortOrder })
   };
 
   const [{ books, total }, categoryOptions] = await Promise.all([
