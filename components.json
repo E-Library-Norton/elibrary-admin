@@ -4,15 +4,20 @@
   "rsc": true,
   "tsx": true,
   "tailwind": {
-    "config": "tailwind.config.js",
-    "css": "app/globals.css",
+    "config": "",
+    "css": "src/app/globals.css",
     "baseColor": "zinc",
     "cssVariables": true
   },
+  "iconLibrary": "radix",
   "aliases": {
     "components": "@/components",
+    "utils": "@/lib/utils",
     "ui": "@/components/ui",
-    "utils": "@/lib/utils"
+    "lib": "@/lib",
+    "hooks": "@/hooks"
   },
-  "packageManager": "npm"
+  "registries": {
+    "@uitripled": "https://ui.tripled.work/r/{name}.json"
+  }
 }

@@ -26,7 +26,7 @@ export const navItems: NavItem[] = [
         title: 'Categories',
         url: '/dashboard/books/categories',
         // icon: 'journals',
-        shortcut: ['b', 'c']  
+        shortcut: ['b', 'c']
       },
       {
         title: 'Departments',
@@ -44,7 +44,7 @@ export const navItems: NavItem[] = [
         title: 'Publishers',
         url: '/dashboard/books/publishers',
         // icon: 'journals',
-        shortcut: ['b', 'p']  
+        shortcut: ['b', 'p']
       },
       {
         title: 'Authors',
@@ -84,7 +84,7 @@ export const navItems: NavItem[] = [
         // icon: 'permissions',
         shortcut: ['u', 'p']
       }
-    ],
+    ]
   },
   {
     title: 'Downloads',
@@ -112,7 +112,7 @@ export const navItems: NavItem[] = [
   },
   {
     title: 'Account',
-    url: '#', 
+    url: '#',
     icon: 'account',
     isActive: true,
     items: [
@@ -128,6 +128,13 @@ export const navItems: NavItem[] = [
         icon: 'settings',
         shortcut: ['s', 't']
       },
+      {
+        title: 'Audit Logs',
+        url: '/dashboard/audit-logs',
+        icon: 'audit',
+        shortcut: ['a', 'l'],
+        access: { role: 'admin' }
+      }
     ]
   }
 ];
