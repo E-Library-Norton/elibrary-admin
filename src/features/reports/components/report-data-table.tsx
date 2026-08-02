@@ -1,3 +1,5 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,7 +12,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ReportColumn } from "../report-config";
-import { ChevronLeft, ChevronRight, FileSearch } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, FileSearch } from "lucide-react";
+import { useState } from "react";
+
+function ReportCover({ record }: { record: Record<string, unknown> }) {
+  const [failed, setFailed] = useState(false);
+  const bookId = record.bookId ?? record.id;
+  const hasCover = Boolean(record.coverUrl);
+  const title = String(record.title ?? record.book ?? "Book");
+
+  if (!bookId || !hasCover || failed) {
+    return (
+      <div className="bg-muted flex h-12 w-9 items-center justify-center rounded ring-1 ring-border">
+        <BookOpen className="text-muted-foreground size-4" aria-hidden="true" />
+      </div>
+    );
+  }
+
+  return (
+    // The backend stores private R2 keys, so covers must use the same-origin proxy.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/api/books/${encodeURIComponent(String(bookId))}/cover`}
+      alt={`Cover of ${title}`}
+      className="h-12 w-9 rounded object-cover ring-1 ring-border"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 function formatDate(value: unknown) {
   if (!value) return "—";
@@ -26,15 +56,9 @@ function formatDate(value: unknown) {
 function valueFor(record: Record<string, unknown>, column: ReportColumn) {
   const value = record[column.key];
   if (column.type === "cover") {
-    return value ? (
-      <img
-        src={String(value)}
-        alt=""
-        className="h-12 w-9 rounded object-cover ring-1 ring-border"
-        loading="lazy"
-      />
-    ) : (
-      <div className="bg-muted h-12 w-9 rounded" />
+    const bookId = record.bookId ?? record.id;
+    return (
+      <ReportCover key={`${String(bookId)}:${String(value)}`} record={record} />
     );
   }
   if (column.type === "date") return formatDate(value);
