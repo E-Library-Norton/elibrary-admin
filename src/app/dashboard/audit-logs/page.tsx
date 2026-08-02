@@ -2,6 +2,7 @@
 
 import PageContainer from "@/components/layout/page-container";
 import { InteractiveLogsTable } from "@/components/uitripled/interactive-logs-table-shadcnui";
+import { AuditDashboard } from "@/components/uitripled/web-performance-page-shadcnui";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/use-role";
 import { useGetActivitiesQuery } from "@/services/activityApi";
@@ -15,6 +16,7 @@ const ACTIONS = [
   "created",
   "updated",
   "deleted",
+  "restored",
   "uploaded",
   "view",
   "login",
@@ -114,39 +116,53 @@ export default function AuditLogsPage() {
         </div>
       }
     >
-      <InteractiveLogsTable
+      <AuditDashboard
         logs={activities}
         total={total}
         page={page}
         totalPages={totalPages}
-        search={searchInput}
-        action={action}
-        resourceType={resourceType}
         days={days}
-        actions={ACTIONS}
-        resourceTypes={RESOURCE_TYPES}
         isLoading={isLoading}
         isFetching={isFetching}
         isError={isError}
-        onSearchChange={setSearchInput}
-        onActionChange={(value) => {
-          setAction(value);
-          setPage(1);
-        }}
-        onResourceTypeChange={(value) => {
-          setResourceType(value);
-          setPage(1);
-        }}
-        onDaysChange={(value) => {
-          setDays(value);
-          setPage(1);
-        }}
-        onPageChange={setPage}
-        onReset={resetFilters}
         onRefresh={() => {
           void refetch();
         }}
-      />
+      >
+        <InteractiveLogsTable
+          logs={activities}
+          total={total}
+          page={page}
+          totalPages={totalPages}
+          search={searchInput}
+          action={action}
+          resourceType={resourceType}
+          days={days}
+          actions={ACTIONS}
+          resourceTypes={RESOURCE_TYPES}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          isError={isError}
+          onSearchChange={setSearchInput}
+          onActionChange={(value) => {
+            setAction(value);
+            setPage(1);
+          }}
+          onResourceTypeChange={(value) => {
+            setResourceType(value);
+            setPage(1);
+          }}
+          onDaysChange={(value) => {
+            setDays(value);
+            setPage(1);
+          }}
+          onPageChange={setPage}
+          onReset={resetFilters}
+          onRefresh={() => {
+            void refetch();
+          }}
+        />
+      </AuditDashboard>
     </PageContainer>
   );
 }

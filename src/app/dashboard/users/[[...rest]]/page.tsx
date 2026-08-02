@@ -527,7 +527,7 @@ export default function UsersPage() {
       // Refetch after create + role assignment
       await refetch();
 
-      toast.success('User created successfully');
+      toast.success(res.message || 'User created successfully');
       setCreateOpen(false);
       setNewUser(emptyUser());
     } catch (error: unknown) {
