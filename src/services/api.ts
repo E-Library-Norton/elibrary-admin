@@ -1,30 +1,29 @@
 // src/services/api.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type {
   BaseQueryFn,
   FetchArgs,
-  FetchBaseQueryError
-} from '@reduxjs/toolkit/query';
-import { setAccessToken, clearUser } from '@/store/authSlice';
+  FetchBaseQueryError,
+} from "@reduxjs/toolkit/query";
+import { setAccessToken, clearUser } from "@/store/authSlice";
 
 // Backend query for protected API calls with Bearer token
 const backendQuery = fetchBaseQuery({
-  baseUrl:
-    process.env.NEXT_PUBLIC_BACKEND_URL ,
+  baseUrl: process.env.NEXT_PUBLIC_BACKEND_URL,
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as { auth: { accessToken: string | null } }).auth
       .accessToken;
     if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
+      headers.set("Authorization", `Bearer ${token}`);
     }
     return headers;
-  }
+  },
 });
 
 // Next.js query for auth routes (login, logout, refresh)
 const nextjsQuery = fetchBaseQuery({
-  baseUrl: '/api',
-  credentials: 'include'
+  baseUrl: "/api",
+  credentials: "include",
 });
 
 // Mutex one refresh at a time
@@ -33,7 +32,7 @@ let refreshPromise: Promise<string | null> | null = null;
 
 async function refreshAccessToken(
   apiArg: Parameters<BaseQueryFn>[1],
-  extraOptions: Parameters<BaseQueryFn>[2]
+  extraOptions: Parameters<BaseQueryFn>[2],
 ): Promise<string | null> {
   if (isRefreshing && refreshPromise) {
     return refreshPromise;
@@ -41,26 +40,26 @@ async function refreshAccessToken(
 
   isRefreshing = true;
   refreshPromise = (async () => {
-  try {
-    const result = await nextjsQuery(
-      { url: '/auth/refresh', method: 'POST' },
-      apiArg,
-      extraOptions
-    );
+    try {
+      const result = await nextjsQuery(
+        { url: "/auth/refresh", method: "POST" },
+        apiArg,
+        extraOptions,
+      );
 
-    const newToken =
-      (result.data as any)?.data?.accessToken ??
-      (result.data as any)?.accessToken ??
-      null;
+      const newToken =
+        (result.data as any)?.data?.accessToken ??
+        (result.data as any)?.accessToken ??
+        null;
 
-    return newToken as string | null;
-  } catch {
-    return null;
-  } finally {
-    isRefreshing = false;
-    refreshPromise = null;
-  }
-})();
+      return newToken as string | null;
+    } catch {
+      return null;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
 
   return refreshPromise;
 }
@@ -72,8 +71,8 @@ const baseQueryWithReauth: BaseQueryFn<
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
   // Detect if this is an auth route (login, logout, refresh)
-  const url = typeof args === 'string' ? args : (args?.url ?? '');
-  const isAuthRoute = url.includes('/auth/');
+  const url = typeof args === "string" ? args : (args?.url ?? "");
+  const isAuthRoute = url.includes("/auth/");
 
   //  Auth routes → Next.js (manages cookies)
   if (isAuthRoute) {
@@ -104,8 +103,8 @@ const baseQueryWithReauth: BaseQueryFn<
       result = await backendQuery(args, api, extraOptions); // retry with new token
     } else {
       api.dispatch(clearUser());
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
       }
     }
   }
@@ -114,12 +113,27 @@ const baseQueryWithReauth: BaseQueryFn<
 };
 
 export const api = createApi({
-  reducerPath: 'api',
+  reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  keepUnusedDataFor: 300,      // 5 min default cache
-  refetchOnFocus: false,        // don't spam API on tab switch
-  refetchOnReconnect: true,     // do refetch after network recovery
-  tagTypes: ['User', 'Role', 'Permission', 'Category', 'Department', 'MaterialType', 'Publisher', 'Author', 'Editor',
-    'Book', 'Download', 'Review', 'Feedback', 'Activity'],
-  endpoints: () => ({})
+  keepUnusedDataFor: 300, // 5 min default cache
+  refetchOnFocus: false, // don't spam API on tab switch
+  refetchOnReconnect: true, // do refetch after network recovery
+  tagTypes: [
+    "User",
+    "Role",
+    "Permission",
+    "Category",
+    "Department",
+    "MaterialType",
+    "Publisher",
+    "Author",
+    "Editor",
+    "Book",
+    "Download",
+    "Review",
+    "Feedback",
+    "Activity",
+    "Report",
+  ],
+  endpoints: () => ({}),
 });

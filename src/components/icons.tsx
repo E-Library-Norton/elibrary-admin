@@ -38,8 +38,9 @@ import {
   IconMessageCircle,
   IconBell,
   IconDownload,
-  IconHistory
-} from '@tabler/icons-react';
+  IconHistory,
+  IconChartBar,
+} from "@tabler/icons-react";
 
 export type Icon = React.ComponentType<IconProps>;
 
@@ -85,5 +86,6 @@ export const Icons = {
   feedback: IconMessageCircle,
   bell: IconBell,
   downloads: IconDownload,
-  audit: IconHistory
+  audit: IconHistory,
+  reports: IconChartBar,
 };
