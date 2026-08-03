@@ -4,7 +4,6 @@ import PageContainer from "@/components/layout/page-container";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ReportChartSection } from "@/features/reports/components/report-chart-section";
 import {
   ReportControls,
   type AppliedReportFilter,
@@ -24,7 +23,7 @@ import {
   type ReportQuery,
   type ReportType,
 } from "@/services/reportApi";
-import { AlertCircle, BarChart3, ShieldAlert } from "lucide-react";
+import { AlertCircle, Info, ShieldAlert } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -44,8 +43,8 @@ function ReportsPageContent() {
   const requestedType = searchParams.get("type") as ReportType | null;
   const type = (
     requestedType &&
-      REPORT_TYPES.has(requestedType) &&
-      reports.some((report) => report.type === requestedType)
+    REPORT_TYPES.has(requestedType) &&
+    reports.some((report) => report.type === requestedType)
       ? requestedType
       : reports[0]?.type || "overview"
   ) as ReportType;
@@ -374,7 +373,7 @@ function ReportsPageContent() {
             <>
               {report.meta.notice && (
                 <Alert>
-                  <BarChart3 className="size-4" />
+                  <Info className="size-4" />
                   <AlertTitle>Aggregate data</AlertTitle>
                   <AlertDescription>
                     {String(report.meta.notice)}
@@ -384,10 +383,8 @@ function ReportsPageContent() {
               <ReportSummaryCards
                 summary={report.summary}
                 comparisons={report.meta.comparisons}
-              />
-              <ReportChartSection
-                trend={report.charts.trend}
-                distribution={report.charts.distribution}
+                reportType={type}
+                period={period}
               />
               <ReportDataTable
                 records={report.records}

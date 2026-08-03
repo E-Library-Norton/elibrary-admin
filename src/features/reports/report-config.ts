@@ -61,7 +61,6 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
       { key: "user", label: "User" },
       { key: "loginMethod", label: "Method" },
       { key: "status", label: "Status" },
-      { key: "ipAddress", label: "IP Address" },
       { key: "deviceType", label: "Device" },
       { key: "browser", label: "Browser" },
       { key: "loggedInAt", label: "Login Time", type: "date" },
@@ -106,7 +105,6 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
       { key: "category", label: "Category" },
       { key: "department", label: "Department" },
       { key: "totalViews", label: "Total Views", type: "number" },
-      { key: "uniqueViewers", label: "Unique Viewers", type: "number" },
     ],
     sortOptions: [
       { value: "totalViews", label: "Most viewed" },
@@ -126,7 +124,6 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
       { key: "category", label: "Category" },
       { key: "department", label: "Department" },
       { key: "downloadedAt", label: "Downloaded At", type: "date" },
-      { key: "ipAddress", label: "IP Address" },
     ],
     sortOptions: [
       { value: "downloadedAt", label: "Newest downloads" },

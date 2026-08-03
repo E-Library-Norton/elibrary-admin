@@ -8,10 +8,6 @@ export function ReportLoadingSkeleton() {
           <Skeleton key={index} className="h-28 rounded-xl" />
         ))}
       </div>
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Skeleton className="h-80 rounded-xl" />
-        <Skeleton className="h-80 rounded-xl" />
-      </div>
       <Skeleton className="h-96 rounded-xl" />
     </div>
   );

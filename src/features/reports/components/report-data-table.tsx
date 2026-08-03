@@ -91,6 +91,11 @@ function valueFor(record: Record<string, unknown>, column: ReportColumn) {
     : String(value);
 }
 
+function hasDisplayValue(value: unknown) {
+  if (value === null || value === undefined) return false;
+  return typeof value !== "string" || value.trim().length > 0;
+}
+
 export function ReportDataTable({
   records,
   columns,
@@ -106,13 +111,19 @@ export function ReportDataTable({
   totalItems: number;
   onPageChange: (page: number) => void;
 }) {
+  const visibleColumns = records.length
+    ? columns.filter((column) =>
+        records.some((record) => hasDisplayValue(record[column.key])),
+      )
+    : columns;
+
   return (
     <Card className="overflow-hidden">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              {columns.map((column) => (
+              {visibleColumns.map((column) => (
                 <TableHead key={column.key} className="whitespace-nowrap">
                   {column.label}
                 </TableHead>
@@ -122,7 +133,7 @@ export function ReportDataTable({
           <TableBody>
             {records.map((record, rowIndex) => (
               <TableRow key={String(record.id ?? rowIndex)}>
-                {columns.map((column) => (
+                {visibleColumns.map((column) => (
                   <TableCell key={column.key} className="max-w-72 align-top">
                     {valueFor(record, column)}
                   </TableCell>
@@ -132,7 +143,7 @@ export function ReportDataTable({
             {!records.length && (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={visibleColumns.length}
                   className="h-44 text-center"
                 >
                   <FileSearch className="text-muted-foreground mx-auto mb-2 size-8" />
