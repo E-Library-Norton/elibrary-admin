@@ -10,7 +10,7 @@ export const navItems: NavItem[] = [
     items: [],
   },
   {
-    title: "Books Management",
+    title: "Book Management",
     url: "/dashboard/books",
     icon: "workspace",
     isActive: false,
@@ -59,7 +59,7 @@ export const navItems: NavItem[] = [
     ],
   },
   {
-    title: "Users Management",
+    title: "User Management",
     url: "/dashboard/users",
     icon: "teams",
     shortcut: ["u", "m"],
